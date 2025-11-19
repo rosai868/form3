@@ -696,26 +696,44 @@
     }
 
     function refreshScheduleDisplay() {
-        const monthKey = currentMonth.toISOString().slice(0, 7);
-        
-        if (!currentScheduleData || !currentScheduleData.drafts) {
-            console.error("currentScheduleData が存在しません");
-            return;
-        }
-        
-        const draft = currentScheduleData.drafts[currentEditingDraft];
-        if (!draft) {
-            console.error(`draft ${currentEditingDraft} が見つかりません`);
-            return;
-        }
-        
-        draft.schedule = currentEditingSchedule;
-        
-        const resultsArea = document.getElementById('schedule-results');
-        resultsArea.innerHTML = '';
-        
-        displayScheduleResults(currentScheduleData, monthKey);
+    const monthKey = currentMonth.toISOString().slice(0, 7);
+    
+    if (!currentScheduleData || !currentScheduleData.drafts) {
+        console.error("currentScheduleData が存在しません");
+        return;
     }
+    
+    const draft = currentScheduleData.drafts[currentEditingDraft];
+    if (!draft) {
+        console.error(`draft ${currentEditingDraft} が見つかりません`);
+        return;
+    }
+    
+    // スケジュールデータを更新
+    draft.schedule = currentEditingSchedule;
+    
+    // ★表だけを再生成して置き換え
+    const scheduleContainer = document.querySelector('#schedule-results > div > div[style*="padding: 15px"]');
+    if (scheduleContainer) {
+        const newHTML = generateScheduleTableHTML(currentEditingSchedule, monthKey, staffListForAdmin);
+        scheduleContainer.innerHTML = newHTML;
+        
+        // 確定ボタンのイベントを再設定
+        const confirmBtn = document.getElementById('confirm-draft1');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                confirmSchedule('draft1');
+            });
+        }
+        
+        // 勤務交換モードを再有効化
+        enableShiftSwap('draft1');
+        
+        console.log("✅ スケジュール表を更新しました");
+    } else {
+        console.error("スケジュール表のコンテナが見つかりません");
+    }
+}
 
     async function saveEditedSchedule() {
         try {
