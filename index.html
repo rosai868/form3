@@ -1764,7 +1764,7 @@
                 
                 const requestsData = allRequestsForAdmin || {};
                 
-                let header = '<tr><th>職員名</th>';
+                let header = '<tr><th style="min-width: 120px;">職員名</th>';
                 for (let d = 1; d <= daysInMonth; d++) {
                     const date = new Date(year, month - 1, d);
                     const dayOfWeek = date.getDay();
@@ -2009,7 +2009,7 @@
                 
                 let table = '<table class="schedule-table" style="font-size: 10px;">';
                 
-                table += '<tr><th>シフト</th><th>チーム</th>';
+                table += '<tr><th rowspan="2">シフト<br>種別</th><th rowspan="2">チーム</th>';
                 for (let d = 1; d <= daysInMonth; d++) {
                     const date = new Date(year, month - 1, d);
                     const dayOfWeek = date.getDay();
