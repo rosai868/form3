@@ -461,6 +461,10 @@
     // ★★★ 勤務交換関連の関数（グローバルスコープ） ★★★
     // ============================================
 
+    // ============================================
+    // ★★★ 勤務交換関連の関数（グローバルスコープ） ★★★
+    // ============================================
+
     function closeSwapModal() {
         document.getElementById('shift-swap-modal').style.display = 'none';
     }
@@ -688,88 +692,28 @@
         
         closeSwapModal();
         await saveEditedSchedule();
-
-        function updateScheduleTableOnly() {
-    const monthKey = currentMonth.toISOString().slice(0, 7);
-    
-    if (!currentScheduleData || !currentScheduleData.drafts) {
-        console.error("currentScheduleData が存在しません");
-        return;
+        refreshScheduleDisplay();
     }
-    
-    const draft = currentScheduleData.drafts[currentEditingDraft];
-    if (!draft) {
-        console.error(`draft ${currentEditingDraft} が見つかりません`);
-        return;
-    }
-    
-    // スケジュールデータを更新
-    draft.schedule = currentEditingSchedule;
-    
-    // ★スケジュール表のHTML部分だけを探して更新
-    const tables = document.querySelectorAll('.schedule-table');
-    if (tables.length > 0) {
-        // 最初のテーブル（スケジュール表本体）を更新
-        const scheduleContainer = tables[0].parentElement;
-        if (scheduleContainer) {
-            // 表とボタンを含む部分全体を再生成
-            const newHTML = `
-                ${generateScheduleTableHTML(currentEditingSchedule, monthKey, staffListForAdmin)}
-            `;
-            scheduleContainer.innerHTML = newHTML;
-            
-            // 確定ボタンのイベントを再設定
-            const confirmBtn = document.getElementById('confirm-draft1');
-            if (confirmBtn) {
-                confirmBtn.addEventListener('click', function() {
-                    confirmSchedule('draft1');
-                });
-            }
-            
-            // 勤務交換モードを再有効化
-            enableShiftSwap('draft1');
-            
-            console.log("✅ スケジュール表を更新しました");
-        }
-    }
-}
-    refreshScheduleDisplay();
-}
 
     function refreshScheduleDisplay() {
-    updateScheduleTableOnly();
-}
-    
-    // ★修正: スケジュールデータを更新
-    draft.schedule = currentEditingSchedule;
-    
-    // ★修正: 表全体を再描画せず、該当部分だけ更新
-    const scheduleTableContainer = document.querySelector('#schedule-results .schedule-table');
-    if (scheduleTableContainer && scheduleTableContainer.parentElement) {
-        // スケジュール表だけを再生成
-        const newTableHTML = generateScheduleTableHTML(
-            currentEditingSchedule, 
-            monthKey, 
-            staffListForAdmin
-        );
+        const monthKey = currentMonth.toISOString().slice(0, 7);
         
-        // 表の親要素のHTMLを更新
-        scheduleTableContainer.parentElement.innerHTML = newTableHTML;
-        
-        // ★重要: 確定ボタンのイベントリスナーを再設定
-        const confirmBtn = document.getElementById('confirm-draft1');
-        if (confirmBtn) {
-            confirmBtn.addEventListener('click', function() {
-                confirmSchedule('draft1');
-            });
+        if (!currentScheduleData || !currentScheduleData.drafts) {
+            console.error("currentScheduleData が存在しません");
+            return;
         }
         
-        // ★重要: 勤務交換モードを再度有効化
-        enableShiftSwap('draft1');
-    } else {
-        // フォールバック: 表全体を再描画
+        const draft = currentScheduleData.drafts[currentEditingDraft];
+        if (!draft) {
+            console.error(`draft ${currentEditingDraft} が見つかりません`);
+            return;
+        }
+        
+        draft.schedule = currentEditingSchedule;
+        
         const resultsArea = document.getElementById('schedule-results');
         resultsArea.innerHTML = '';
+        
         displayScheduleResults(currentScheduleData, monthKey);
     }
 
@@ -822,6 +766,9 @@
         }, 3000);
     }
 
+    // ============================================
+    // ログイン関連
+    // ============================================
     // ============================================
     // ログイン関連
     // ============================================
