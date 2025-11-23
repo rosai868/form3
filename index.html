@@ -875,7 +875,7 @@ console.log("===================");
     
     const draft = currentScheduleData.drafts[currentEditingDraft];
     if (!draft) {
-        console.error(`draft ${currentEditingDraft} が見つかりません`);
+        console.error('draft ' + currentEditingDraft + ' が見つかりません');
         return;
     }
     
@@ -893,37 +893,50 @@ console.log("===================");
     
     // 既存の内容を完全にクリア
     const existingDrafts = resultsArea.querySelectorAll('div[style*="margin-top: 20px"]');
-    existingDrafts.forEach(div => div.remove());
+    existingDrafts.forEach(function(div) {
+        div.remove();
+    });
     
     // 新しい表を生成
-    const warningCount = draft.validation?.warnings?.length || 0;
+    const warningCount = draft.validation && draft.validation.warnings ? draft.validation.warnings.length : 0;
     const validationStatus = warningCount === 0
         ? '<span style="color: #2E7D32;">✓ すべての必須条件をクリア</span>' 
-        : `<span style="color: #F57C00;">⚠ 警告 ${warningCount}件</span>`;
+        : '<span style="color: #F57C00;">⚠ 警告 ' + warningCount + '件</span>';
     
     const draftDiv = document.createElement('div');
     draftDiv.style = "margin-top: 20px; border: 1px solid #E0E0E0; border-radius: 8px; overflow: hidden;";
     
-    draftDiv.innerHTML = `
-        <div style="background: #F8F8F8; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">
-            <h4 style="color: #5D4037;">${draft.type || '勤務表'} 
-                ${draft.attempts ? `<span style="font-size: 13px; color: #666;">(${draft.attempts}回試行、${draft.elapsedTime || '?'}秒、スコア: ${draft.score || '?'})</span>` : ''}
-            </h4>
-            <div>${validationStatus}</div>
-        </div>
-    `;
+    // ヘッダー部分
+    let attemptsInfo = '';
+    if (draft.attempts) {
+        attemptsInfo = '<span style="font-size: 13px; color: #666;">(' + 
+                       draft.attempts + '回試行、' + 
+                       (draft.elapsedTime || '?') + '秒、スコア: ' + 
+                       (draft.score || '?') + ')</span>';
+    }
+    
+    draftDiv.innerHTML = 
+        '<div style="background: #F8F8F8; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">' +
+        '<h4 style="color: #5D4037;">' + (draft.type || '勤務表') + ' ' + attemptsInfo + '</h4>' +
+        '<div>' + validationStatus + '</div>' +
+        '</div>';
     
     // 警告表示
     if (warningCount > 0) {
         const warningDiv = document.createElement('div');
         warningDiv.style = "padding: 10px 15px; background: #FFF3E0; border-left: 4px solid #F57C00;";
-        warningDiv.innerHTML = `
-            <strong style="color: #E65100;">警告事項:</strong>
-            <ul style="margin: 5px 0 0 20px; color: #E65100;">
-                ${draft.validation.warnings.slice(0, 10).map(warn => `<li>${warn}</li>`).join('')}
-                ${warningCount > 10 ? `<li>... 他 ${warningCount - 10} 件</li>` : ''}
-            </ul>
-        `;
+        
+        let warningsHtml = '<ul style="margin: 5px 0 0 20px; color: #E65100;">';
+        const maxWarnings = Math.min(10, draft.validation.warnings.length);
+        for (let i = 0; i < maxWarnings; i++) {
+            warningsHtml += '<li>' + draft.validation.warnings[i] + '</li>';
+        }
+        if (warningCount > 10) {
+            warningsHtml += '<li>... 他 ' + (warningCount - 10) + ' 件</li>';
+        }
+        warningsHtml += '</ul>';
+        
+        warningDiv.innerHTML = '<strong style="color: #E65100;">警告事項:</strong>' + warningsHtml;
         draftDiv.appendChild(warningDiv);
     }
     
@@ -934,17 +947,15 @@ console.log("===================");
     // ★確定済みかチェック
     const isConfirmed = draft.confirmed === true;
     const confirmButtonHTML = isConfirmed 
-        ? `<button id="confirm-draft1" disabled style="background: #4CAF50; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px; cursor: not-allowed;">
-            <i class="fas fa-check-circle"></i> 確定済み ${draft.confirmedBy ? `(${draft.confirmedBy})` : ''}
-           </button>`
-        : `<button id="confirm-draft1" style="background: #1976D2; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px;">
-            <i class="fas fa-check"></i> この案で確定する
-           </button>`;
+        ? '<button id="confirm-draft1" disabled style="background: #4CAF50; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px; cursor: not-allowed;">' +
+          '<i class="fas fa-check-circle"></i> 確定済み ' + (draft.confirmedBy ? '(' + draft.confirmedBy + ')' : '') +
+          '</button>'
+        : '<button id="confirm-draft1" style="background: #1976D2; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px;">' +
+          '<i class="fas fa-check"></i> この案で確定する' +
+          '</button>';
     
-    scheduleDiv.innerHTML = `
-        ${generateScheduleTableHTML(currentEditingSchedule, monthKey, staffListForAdmin)}
-        ${confirmButtonHTML}
-    `;
+    // ★修正: テンプレートリテラルを使わない
+    scheduleDiv.innerHTML = generateScheduleTableHTML(currentEditingSchedule, monthKey, staffListForAdmin) + confirmButtonHTML;
     
     draftDiv.appendChild(scheduleDiv);
     resultsArea.appendChild(draftDiv);
@@ -964,7 +975,6 @@ console.log("===================");
     
     console.log("✅ スケジュール表を再描画しました");
 }
-
     async function saveEditedSchedule() {
     try {
         const monthKey = currentMonth.toISOString().slice(0, 7);
