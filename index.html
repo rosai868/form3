@@ -2461,9 +2461,13 @@ function generateCountTable(schedule, staff, daysInMonth) {
         showMessage('確定に失敗しました: ' + error.message, 'error');
     }
 }
-
-    }); // window.addEventListener の閉じ括弧
-    
+        } catch (error) {
+            console.error('初期化処理エラー:', error);
+            alert('初期化中にエラーが発生しました: ' + error.message);
+        }
+        
+    }); 
+        
     </script>
 </body>
 </html>
