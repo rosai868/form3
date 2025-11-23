@@ -1820,7 +1820,7 @@ if (loadBtn) {
     });
 }
 
-            generateBtn.addEventListener('click', async () => {
+            generateBtn.addEventListener('click', async function() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth() + 1;
     const monthKey = year + '-' + String(month).padStart(2, '0');
