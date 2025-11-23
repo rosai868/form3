@@ -2396,7 +2396,6 @@ if (loadBtn) {
 }
 
     async function confirmSchedule(draftKey) {
-    // ★修正: confirm() は丸括弧で囲む
     if (!confirm('「' + draftKey + '」を最終的な勤務表として確定しますか？\n確定後は自動生成による上書きができなくなります。')) {
         return;
     }
@@ -2439,14 +2438,14 @@ if (loadBtn) {
             confirmBtn.style.cursor = 'not-allowed';
         }
         
-        } catch (error) {
+    } catch (error) {
         console.error('❌ 確定エラー:', error);
         showMessage('確定に失敗しました: ' + error.message, 'error');
     }
-}  // ← 2445行目: confirmSchedule関数の閉じ括弧
+}
 
-    }); // ← 2446行目: ★これを追加！ window.addEventListener の閉じ括弧
-
+    }); // window.addEventListener の閉じ括弧
+    
     </script>
 </body>
 </html>
