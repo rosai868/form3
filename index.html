@@ -2332,23 +2332,56 @@ function formatTimestamp(timestamp) {
     return table;
 }
 
-            function confirmSchedule(draftKey) {
-                if (!confirm(`「${draftKey}」を最終的な勤務表として確定しますか？\n（現在この機能は開発中です）`)) {
-                    return;
-                }
-                alert(`${draftKey} が確定されました。（機能は開発中です）`);
-            }
-
-        } catch (error) {
-            console.error('初期化エラー:', error);
-            document.getElementById('loadingSection').innerHTML = 
-                '<div class="loading">' +
-                '<p style="color: red;">システムの初期化に失敗しました</p>' +
-                '<p style="font-size: 14px; margin-top: 10px;">管理者に連絡してください</p>' +
-                '<p style="font-size: 12px; margin-top: 10px; color: #666;">エラー: ' + error.message + '</p>' +
-                '</div>';
+    async function confirmSchedule(draftKey) {
+    if (!confirm(`「${draftKey}」を最終的な勤務表として確定しますか？\n確定後は自動生成による上書きができなくなります。`)) {
+        return;
+    }
+    
+    try {
+        const monthKey = currentMonth.toISOString().slice(0, 7);
+        
+        console.log("確定処理開始:", monthKey, draftKey);
+        
+        // ★改良版: ドキュメント全体を取得して更新
+        const scheduleRef = firestore.collection('Schedules').doc(monthKey);
+        const scheduleDoc = await scheduleRef.get();
+        
+        if (!scheduleDoc.exists) {
+            throw new Error("スケジュールドキュメントが見つかりません");
         }
-    });
+        
+        const currentData = scheduleDoc.data();
+        
+        if (!currentData.drafts || !currentData.drafts[draftKey]) {
+            throw new Error(`draft ${draftKey} が見つかりません`);
+        }
+        
+        // 確定フラグを立てる
+        currentData.drafts[draftKey].confirmed = true;
+        currentData.drafts[draftKey].confirmedAt = firebase.firestore.FieldValue.serverTimestamp();
+        currentData.drafts[draftKey].confirmedBy = currentUser.name;
+        
+        // 保存
+        await scheduleRef.set(currentData, { merge: true });
+        
+        console.log("✅ 勤務表が確定されました");
+        showMessage('勤務表が確定されました', 'success');
+        
+        // ボタンを無効化
+        const confirmBtn = document.getElementById('confirm-draft1');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-check-circle"></i> 確定済み';
+            confirmBtn.style.background = '#4CAF50';
+            confirmBtn.style.cursor = 'not-allowed';
+        }
+        
+    } catch (error) {
+        console.error('❌ 確定エラー:', error);
+        showMessage('確定に失敗しました: ' + error.message, 'error');
+    }
+}
+
     </script>
 </body>
 </html>
