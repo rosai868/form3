@@ -615,7 +615,13 @@
     currentEditingSchedule = JSON.parse(JSON.stringify(draft.schedule));
     
     console.log("勤務交換モード有効化:", draftKey);
-    console.log("編集対象月:", currentMonth.toISOString().slice(0, 7));
+    
+    // ★修正: toISOString()を使わず、currentScheduleData.monthKey をそのまま使うか、現地時間で生成
+    const year = currentMonth.getFullYear();
+    const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
+    const monthKey = `${year}-${month}`;
+    
+    console.log("編集対象月:", monthKey); // ← これで 2025-12 になるはずです
     
     document.querySelectorAll('.schedule-table td[class^="shift-"]').forEach(cell => {
         cell.style.cursor = 'pointer';
@@ -623,7 +629,6 @@
         cell.addEventListener('click', handleShiftCellClick);
     });
 }
-
     function handleShiftCellClick(event) {
         const cell = event.target;
         console.log("セルクリック:", cell);
@@ -867,7 +872,10 @@ console.log("===================");
     refreshScheduleDisplay();
 }
     function refreshScheduleDisplay() {
-    const monthKey = currentMonth.toISOString().slice(0, 7);
+    // ★修正: 安全な月キー生成
+    const year = currentMonth.getFullYear();
+    const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
+    const monthKey = `${year}-${month}`;
     
     console.log("=== refreshScheduleDisplay 開始 ===");
     console.log("monthKey:", monthKey);
