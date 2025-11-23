@@ -2400,7 +2400,8 @@ function formatTimestamp(timestamp) {
 }
 
     async function confirmSchedule(draftKey) {
-    if (!confirm(`「${draftKey}」を最終的な勤務表として確定しますか？\n確定後は自動生成による上書きができなくなります。`)) {
+    // ★修正: confirm() は丸括弧で囲む
+    if (!confirm('「' + draftKey + '」を最終的な勤務表として確定しますか？\n確定後は自動生成による上書きができなくなります。')) {
         return;
     }
     
@@ -2409,18 +2410,17 @@ function formatTimestamp(timestamp) {
         
         console.log("確定処理開始:", monthKey, draftKey);
         
-        // ★改良版: ドキュメント全体を取得して更新
         const scheduleRef = firestore.collection('Schedules').doc(monthKey);
         const scheduleDoc = await scheduleRef.get();
         
         if (!scheduleDoc.exists) {
-            throw new Error("スケジュールドキュメントが見つかりません");
+            throw new Error('スケジュールドキュメントが見つかりません');
         }
         
         const currentData = scheduleDoc.data();
         
         if (!currentData.drafts || !currentData.drafts[draftKey]) {
-            throw new Error(`draft ${draftKey} が見つかりません`);
+            throw new Error('draft ' + draftKey + ' が見つかりません');
         }
         
         // 確定フラグを立てる
