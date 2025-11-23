@@ -1821,120 +1821,116 @@ function formatTimestamp(timestamp) {
             }
 
             generateBtn.addEventListener('click', async () => {
-                const year = currentMonth.getFullYear();
-                const month = currentMonth.getMonth() + 1;
-                const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth() + 1;
+    const monthKey = year + '-' + String(month).padStart(2, '0');
 
-                if (!confirm(`${year}年${month}月 の勤務表の作成を開始しますか？`)) {
-                    return;
-                }
+    if (!confirm(year + '年' + month + '月 の勤務表の作成を開始しますか？')) {
+        return;
+    }
 
-                generateBtn.disabled = true;
-                generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ジョブを登録中...';
-                resultsArea.innerHTML = '<p style="color: #00897B;">処理を開始しています...</p>';
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ジョブを登録中...';
+    resultsArea.innerHTML = '<p style="color: #00897B;">処理を開始しています...</p>';
 
-                try {
-                    const createUrl = `${GAS_API_URL}?action=create&month=${monthKey}&v=${new Date().getTime()}`;
-                    console.log("ジョブ登録URL:", createUrl);
-                    
-                    const createResult = await callGASWithJSONP(createUrl);
-                    console.log("ジョブ登録結果:", createResult);
-                    
-                    if (!createResult.success) {
-                        throw new Error(createResult.message);
-                    }
+    try {
+        const createUrl = GAS_API_URL + '?action=create&month=' + monthKey + '&v=' + new Date().getTime();
+        console.log("ジョブ登録URL:", createUrl);
+        
+        const createResult = await callGASWithJSONP(createUrl);
+        console.log("ジョブ登録結果:", createResult);
+        
+        if (!createResult.success) {
+            throw new Error(createResult.message);
+        }
 
-                    const jobId = createResult.jobId;
-                    console.log("ジョブID:", jobId);
+        const jobId = createResult.jobId;
+        console.log("ジョブID:", jobId);
 
-                    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 処理中...';
-                    resultsArea.innerHTML = `
-                        <p style="color: #00897B;">
-                            <i class="fas fa-cog fa-spin"></i> スケジュールを生成中です...<br>
-                            <span style="font-size: 12px;">この処理には数分かかることがあります。しばらくお待ちください。</span>
-                        </p>
-                    `;
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 処理中...';
+        resultsArea.innerHTML = 
+            '<p style="color: #00897B;">' +
+            '<i class="fas fa-cog fa-spin"></i> スケジュールを生成中です...<br>' +
+            '<span style="font-size: 12px;">この処理には数分かかることがあります。しばらくお待ちください。</span>' +
+            '</p>';
 
-                    const scheduleData = await pollJobStatus(jobId, monthKey);
-                    
-                    displayScheduleResults(scheduleData, monthKey);
-                    
-                } catch (error) {
-                    console.error('詳細エラー:', error);
-                    resultsArea.innerHTML = `
-                        <div style="background: #FFEBEE; padding: 15px; border-radius: 8px;">
-                            <p class="error-message">エラーが発生しました</p>
-                            <p style="font-size: 12px; color: #666; margin-top: 10px;">
-                                ${error.message}
-                            </p>
-                        </div>
-                    `;
-                } finally {
-                    generateBtn.disabled = false;
-                    generateBtn.innerHTML = '<i class="fas fa-magic"></i> 勤務表の作成を開始';
-                }
-            });
-
+        const scheduleData = await pollJobStatus(jobId, monthKey);
+        
+        displayScheduleResults(scheduleData, monthKey);
+        
+    } catch (error) {
+        console.error('詳細エラー:', error);
+        resultsArea.innerHTML = 
+            '<div style="background: #FFEBEE; padding: 15px; border-radius: 8px;">' +
+            '<p class="error-message">エラーが発生しました</p>' +
+            '<p style="font-size: 12px; color: #666; margin-top: 10px;">' +
+            error.message +
+            '</p>' +
+            '</div>';
+    } finally {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '<i class="fas fa-magic"></i> 勤務表の作成を開始';
+    }
+});
             async function pollJobStatus(jobId, monthKey) {
-                const maxAttempts = 60;
-                const interval = 5000;
-                let attempt = 0;
+    const maxAttempts = 60;
+    const interval = 5000;
+    let attempt = 0;
 
-                while (attempt < maxAttempts) {
-                    attempt++;
-                    console.log(`ポーリング ${attempt}/${maxAttempts}...`);
+    while (attempt < maxAttempts) {
+        attempt++;
+        console.log('ポーリング ' + attempt + '/' + maxAttempts + '...');
 
-                    try {
-                        const statusUrl = `${GAS_API_URL}?action=checkJob&jobId=${jobId}&v=${new Date().getTime()}`;
-                        const statusResult = await callGASWithJSONP(statusUrl);
-                        
-                        console.log("ジョブ状態:", statusResult);
+        try {
+            const statusUrl = GAS_API_URL + '?action=checkJob&jobId=' + jobId + '&v=' + new Date().getTime();
+            const statusResult = await callGASWithJSONP(statusUrl);
+            
+            console.log("ジョブ状態:", statusResult);
 
-                        if (!statusResult.success) {
-                            throw new Error("ジョブ状態の確認に失敗しました");
-                        }
+            if (!statusResult.success) {
+                throw new Error("ジョブ状態の確認に失敗しました");
+            }
 
-                        const status = statusResult.status;
+            const status = statusResult.status;
 
-                        if (status === "completed") {
-                            console.log("処理完了!結果を取得します...");
-                            const scheduleUrl = `${GAS_API_URL}?action=getSchedule&month=${monthKey}&v=${new Date().getTime()}`;
-                            const scheduleResult = await callGASWithJSONP(scheduleUrl);
-                            
-                            if (!scheduleResult.success) {
-                                throw new Error("スケジュールの取得に失敗しました: " + scheduleResult.message);
-                            }
-
-                            return scheduleResult.data;
-
-                        } else if (status === "failed") {
-                            throw new Error("スケジュール生成に失敗しました");
-
-                        } else if (status === "processing" || status === "pending") {
-                            resultsArea.innerHTML = `
-                                <p style="color: #00897B;">
-                                    <i class="fas fa-cog fa-spin"></i> 処理中... (${attempt * interval / 1000}秒経過)<br>
-                                    <span style="font-size: 12px;">ステータス: ${status}</span>
-                                </p>
-                            `;
-                            await sleep(interval);
-                            continue;
-
-                        } else {
-                            throw new Error("不明なステータス: " + status);
-                        }
-
-                    } catch (error) {
-                        console.error("ポーリングエラー:", error);
-                        if (attempt >= maxAttempts) {
-                            throw new Error("タイムアウト: 処理に時間がかかりすぎています");
-                        }
-                        await sleep(interval);
-                    }
+            if (status === "completed") {
+                console.log("処理完了!結果を取得します...");
+                const scheduleUrl = GAS_API_URL + '?action=getSchedule&month=' + monthKey + '&v=' + new Date().getTime();
+                const scheduleResult = await callGASWithJSONP(scheduleUrl);
+                
+                if (!scheduleResult.success) {
+                    throw new Error("スケジュールの取得に失敗しました: " + scheduleResult.message);
                 }
 
-                throw new Error("タイムアウト: 処理が完了しませんでした");
+                return scheduleResult.data;
+
+            } else if (status === "failed") {
+                throw new Error("スケジュール生成に失敗しました");
+
+            } else if (status === "processing" || status === "pending") {
+                resultsArea.innerHTML = 
+                    '<p style="color: #00897B;">' +
+                    '<i class="fas fa-cog fa-spin"></i> 処理中... (' + (attempt * interval / 1000) + '秒経過)<br>' +
+                    '<span style="font-size: 12px;">ステータス: ' + status + '</span>' +
+                    '</p>';
+                await sleep(interval);
+                continue;
+
+            } else {
+                throw new Error("不明なステータス: " + status);
             }
+
+        } catch (error) {
+            console.error("ポーリングエラー:", error);
+            if (attempt >= maxAttempts) {
+                throw new Error("タイムアウト: 処理に時間がかかりすぎています");
+            }
+            await sleep(interval);
+        }
+    }
+
+    throw new Error("タイムアウト: 処理が完了しませんでした");
+}
 
             function sleep(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
