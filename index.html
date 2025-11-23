@@ -2439,12 +2439,13 @@ if (loadBtn) {
             confirmBtn.style.cursor = 'not-allowed';
         }
         
-    } catch (error) {
+        } catch (error) {
         console.error('❌ 確定エラー:', error);
         showMessage('確定に失敗しました: ' + error.message, 'error');
     }
+}  // ← 2445行目: confirmSchedule関数の閉じ括弧
 
-    });
+    }); // ← 2446行目: ★これを追加！ window.addEventListener の閉じ括弧
 
     </script>
 </body>
