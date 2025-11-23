@@ -205,6 +205,118 @@
         .swap-btn.transfer:hover {
             background: #F57C00;
         }
+
+        /* プログレスバー関連 */
+.progress-container {
+    background: #F5F5F5;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.progress-status {
+    font-size: 16px;
+    font-weight: bold;
+    color: #00897B;
+}
+
+.progress-time {
+    font-size: 14px;
+    color: #666;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 30px;
+    background: #E0E0E0;
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #81C784);
+    border-radius: 15px;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.progress-details {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.progress-detail-item {
+    background: white;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #E0E0E0;
+    text-align: center;
+}
+
+.progress-detail-label {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.progress-detail-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: #00897B;
+}
+
+.progress-detail-value.score {
+    color: #1976D2;
+}
+
+.progress-detail-value.time {
+    color: #F57C00;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.progress-status.processing {
+    animation: pulse 1.5s infinite;
+}
+
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #E0E0E0;
+    border-top-color: #00897B;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
         
         @keyframes slideIn {
             from {
@@ -1872,14 +1984,16 @@ if (loadBtn) {
         generateBtn.innerHTML = '<i class="fas fa-magic"></i> 勤務表の作成を開始';
     }
 });
-            async function pollJobStatus(jobId, monthKey) {
+     async function pollJobStatus(jobId, monthKey) {
     const maxAttempts = 60;
     const interval = 5000;
     let attempt = 0;
+    
+    // ★プログレスバーを表示
+    showProgressUI();
 
     while (attempt < maxAttempts) {
         attempt++;
-        console.log('ポーリング ' + attempt + '/' + maxAttempts + '...');
 
         try {
             const statusUrl = GAS_API_URL + '?action=checkJob&jobId=' + jobId + '&v=' + new Date().getTime();
@@ -1892,9 +2006,12 @@ if (loadBtn) {
             }
 
             const status = statusResult.status;
+            const progress = statusResult.progress; // ★進捗情報を取得
 
             if (status === "completed") {
                 console.log("処理完了!結果を取得します...");
+                updateProgressUI(100, progress); // ★100%に更新
+                
                 const scheduleUrl = GAS_API_URL + '?action=getSchedule&month=' + monthKey + '&v=' + new Date().getTime();
                 const scheduleResult = await callGASWithJSONP(scheduleUrl);
                 
@@ -1908,11 +2025,20 @@ if (loadBtn) {
                 throw new Error("スケジュール生成に失敗しました");
 
             } else if (status === "processing" || status === "pending") {
-                resultsArea.innerHTML = 
-                    '<p style="color: #00897B;">' +
-                    '<i class="fas fa-cog fa-spin"></i> 処理中... (' + (attempt * interval / 1000) + '秒経過)<br>' +
-                    '<span style="font-size: 12px;">ステータス: ' + status + '</span>' +
-                    '</p>';
+                // ★進捗情報を表示
+                if (progress) {
+                    updateProgressUI(progress.percentage, progress);
+                } else {
+                    // 進捗情報がない場合は推定値
+                    const estimatedPercentage = Math.min((attempt * 5), 95);
+                    updateProgressUI(estimatedPercentage, {
+                        attempts: '?',
+                        maxAttempts: '?',
+                        currentScore: '計算中',
+                        elapsedTime: attempt * interval / 1000
+                    });
+                }
+                
                 await sleep(interval);
                 continue;
 
@@ -1931,6 +2057,76 @@ if (loadBtn) {
 
     throw new Error("タイムアウト: 処理が完了しませんでした");
 }
+
+// ★新規関数: プログレスUIを表示
+function showProgressUI() {
+    resultsArea.innerHTML = `
+        <div class="progress-container">
+            <div class="progress-header">
+                <div class="progress-status processing">
+                    <span class="spinner"></span> スケジュールを生成中...
+                </div>
+                <div class="progress-time" id="progress-elapsed">経過時間: 0秒</div>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar" style="width: 0%;">
+                    0%
+                </div>
+            </div>
+            
+            <div class="progress-details">
+                <div class="progress-detail-item">
+                    <div class="progress-detail-label">試行回数</div>
+                    <div class="progress-detail-value" id="progress-attempts">0 / ?</div>
+                </div>
+                <div class="progress-detail-item">
+                    <div class="progress-detail-label">現在のスコア</div>
+                    <div class="progress-detail-value score" id="progress-score">計算中</div>
+                </div>
+                <div class="progress-detail-item">
+                    <div class="progress-detail-label">推定残り時間</div>
+                    <div class="progress-detail-value time" id="progress-remaining">計算中</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ★新規関数: プログレスUIを更新
+function updateProgressUI(percentage, progress) {
+    const progressBar = document.getElementById('progress-bar');
+    const attemptsEl = document.getElementById('progress-attempts');
+    const scoreEl = document.getElementById('progress-score');
+    const elapsedEl = document.getElementById('progress-elapsed');
+    const remainingEl = document.getElementById('progress-remaining');
+    
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+        progressBar.textContent = Math.round(percentage) + '%';
+    }
+    
+    if (progress) {
+        if (attemptsEl) {
+            attemptsEl.textContent = progress.attempts + ' / ' + progress.maxAttempts;
+        }
+        
+        if (scoreEl) {
+            scoreEl.textContent = progress.currentScore === 0 ? '計算中' : progress.currentScore;
+        }
+        
+        if (elapsedEl) {
+            elapsedEl.textContent = '経過時間: ' + progress.elapsedTime + '秒';
+        }
+        
+        if (remainingEl && progress.percentage > 0) {
+            const avgTimePerPercent = progress.elapsedTime / progress.percentage;
+            const remainingPercentage = 100 - progress.percentage;
+            const estimatedRemaining = Math.round(avgTimePerPercent * remainingPercentage);
+            remainingEl.textContent = estimatedRemaining + '秒';
+        }
+    }
+}       
 
             function sleep(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
