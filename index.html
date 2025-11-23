@@ -674,10 +674,21 @@
         currentEditingSchedule[staffAUid].shifts[date] = shiftB;
         currentEditingSchedule[staffBUid].shifts[date] = shiftA;
         
-        // カウント更新
-        currentEditingSchedule[staffAUid].counts[shiftA]--;
+        // ★修正: カウント更新（存在チェック付き）
+        if (currentEditingSchedule[staffAUid].counts[shiftA] > 0) {
+            currentEditingSchedule[staffAUid].counts[shiftA]--;
+        }
+        if (!currentEditingSchedule[staffAUid].counts[shiftB]) {
+            currentEditingSchedule[staffAUid].counts[shiftB] = 0;
+        }
         currentEditingSchedule[staffAUid].counts[shiftB]++;
-        currentEditingSchedule[staffBUid].counts[shiftB]--;
+        
+        if (currentEditingSchedule[staffBUid].counts[shiftB] > 0) {
+            currentEditingSchedule[staffBUid].counts[shiftB]--;
+        }
+        if (!currentEditingSchedule[staffBUid].counts[shiftA]) {
+            currentEditingSchedule[staffBUid].counts[shiftA] = 0;
+        }
         currentEditingSchedule[staffBUid].counts[shiftA]++;
         
         showMessage(`${staffA.name} と ${staffB.name} の ${date}日のシフトを交換しました`, 'success');
@@ -687,12 +698,21 @@
         currentEditingSchedule[staffBUid].shifts[date] = shiftA;
         currentEditingSchedule[staffAUid].shifts[date] = '休';
         
-        // カウント更新
-        if (shiftB && shiftB !== '休') {
+        // ★修正: カウント更新（存在チェック付き）
+        if (shiftB && shiftB !== '休' && currentEditingSchedule[staffBUid].counts[shiftB] > 0) {
             currentEditingSchedule[staffBUid].counts[shiftB]--;
         }
+        if (!currentEditingSchedule[staffBUid].counts[shiftA]) {
+            currentEditingSchedule[staffBUid].counts[shiftA] = 0;
+        }
         currentEditingSchedule[staffBUid].counts[shiftA]++;
-        currentEditingSchedule[staffAUid].counts[shiftA]--;
+        
+        if (currentEditingSchedule[staffAUid].counts[shiftA] > 0) {
+            currentEditingSchedule[staffAUid].counts[shiftA]--;
+        }
+        if (!currentEditingSchedule[staffAUid].counts['休']) {
+            currentEditingSchedule[staffAUid].counts['休'] = 0;
+        }
         currentEditingSchedule[staffAUid].counts['休']++;
         
         showMessage(`${staffA.name} の ${date}日のシフトを ${staffB.name} に譲渡しました`, 'success');
@@ -753,12 +773,30 @@
         
         console.log("スケジュール保存開始:", monthKey, currentEditingDraft);
         
-        // ★重要: scheduleオブジェクト全体を更新
-        const updateData = {};
-        updateData[`drafts.${currentEditingDraft}.schedule`] = currentEditingSchedule;
-        updateData[`drafts.${currentEditingDraft}.lastModified`] = firebase.firestore.FieldValue.serverTimestamp();
+        // ★重要: ネストされたフィールドは一度に更新できないため、全体を取得して更新
+        const scheduleDoc = await firestore.collection('Schedules').doc(monthKey).get();
         
-        await firestore.collection('Schedules').doc(monthKey).update(updateData);
+        if (!scheduleDoc.exists) {
+            throw new Error("スケジュールドキュメントが見つかりません");
+        }
+        
+        const currentData = scheduleDoc.data();
+        
+        // ★drafts全体を更新
+        if (!currentData.drafts) {
+            currentData.drafts = {};
+        }
+        
+        if (!currentData.drafts[currentEditingDraft]) {
+            throw new Error(`draft ${currentEditingDraft} が見つかりません`);
+        }
+        
+        // スケジュールを更新
+        currentData.drafts[currentEditingDraft].schedule = currentEditingSchedule;
+        currentData.drafts[currentEditingDraft].lastModified = firebase.firestore.FieldValue.serverTimestamp();
+        
+        // 全体を保存
+        await firestore.collection('Schedules').doc(monthKey).set(currentData, { merge: true });
         
         console.log("✅ 編集したスケジュールを保存しました");
         
