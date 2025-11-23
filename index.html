@@ -743,11 +743,18 @@ console.log("===================");
 
     // ★重要: 保存してから画面を更新
     await saveEditedSchedule();
-    await refreshScheduleDisplay();
-}
 
+    // ★少し待ってから更新（Firestoreの書き込み完了を待つ）
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    refreshScheduleDisplay();
+}
     function refreshScheduleDisplay() {
     const monthKey = currentMonth.toISOString().slice(0, 7);
+    
+    console.log("=== refreshScheduleDisplay 開始 ===");
+    console.log("monthKey:", monthKey);
+    console.log("currentEditingDraft:", currentEditingDraft);
     
     if (!currentScheduleData || !currentScheduleData.drafts) {
         console.error("currentScheduleData が存在しません");
@@ -760,30 +767,90 @@ console.log("===================");
         return;
     }
     
-    // スケジュールデータを更新
+    // ★重要: スケジュールデータを更新
     draft.schedule = currentEditingSchedule;
     
-    // ★表だけを再生成して置き換え
-    const scheduleContainer = document.querySelector('#schedule-results > div > div[style*="padding: 15px"]');
-    if (scheduleContainer) {
-        const newHTML = generateScheduleTableHTML(currentEditingSchedule, monthKey, staffListForAdmin);
-        scheduleContainer.innerHTML = newHTML;
-        
-        // 確定ボタンのイベントを再設定
+    console.log("スケジュールデータを更新しました");
+    
+    // ★表全体を再描画
+    const resultsArea = document.getElementById('schedule-results');
+    if (!resultsArea) {
+        console.error("schedule-results が見つかりません");
+        return;
+    }
+    
+    // 既存の内容を完全にクリア
+    const existingDrafts = resultsArea.querySelectorAll('div[style*="margin-top: 20px"]');
+    existingDrafts.forEach(div => div.remove());
+    
+    // 新しい表を生成
+    const warningCount = draft.validation?.warnings?.length || 0;
+    const validationStatus = warningCount === 0
+        ? '<span style="color: #2E7D32;">✓ すべての必須条件をクリア</span>' 
+        : `<span style="color: #F57C00;">⚠ 警告 ${warningCount}件</span>`;
+    
+    const draftDiv = document.createElement('div');
+    draftDiv.style = "margin-top: 20px; border: 1px solid #E0E0E0; border-radius: 8px; overflow: hidden;";
+    
+    draftDiv.innerHTML = `
+        <div style="background: #F8F8F8; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="color: #5D4037;">${draft.type || '勤務表'} 
+                ${draft.attempts ? `<span style="font-size: 13px; color: #666;">(${draft.attempts}回試行、${draft.elapsedTime || '?'}秒、スコア: ${draft.score || '?'})</span>` : ''}
+            </h4>
+            <div>${validationStatus}</div>
+        </div>
+    `;
+    
+    // 警告表示
+    if (warningCount > 0) {
+        const warningDiv = document.createElement('div');
+        warningDiv.style = "padding: 10px 15px; background: #FFF3E0; border-left: 4px solid #F57C00;";
+        warningDiv.innerHTML = `
+            <strong style="color: #E65100;">警告事項:</strong>
+            <ul style="margin: 5px 0 0 20px; color: #E65100;">
+                ${draft.validation.warnings.slice(0, 10).map(warn => `<li>${warn}</li>`).join('')}
+                ${warningCount > 10 ? `<li>... 他 ${warningCount - 10} 件</li>` : ''}
+            </ul>
+        `;
+        draftDiv.appendChild(warningDiv);
+    }
+    
+    // スケジュール表
+    const scheduleDiv = document.createElement('div');
+    scheduleDiv.style = "padding: 15px; overflow-x: auto;";
+    
+    // ★確定済みかチェック
+    const isConfirmed = draft.confirmed === true;
+    const confirmButtonHTML = isConfirmed 
+        ? `<button id="confirm-draft1" disabled style="background: #4CAF50; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px; cursor: not-allowed;">
+            <i class="fas fa-check-circle"></i> 確定済み ${draft.confirmedBy ? `(${draft.confirmedBy})` : ''}
+           </button>`
+        : `<button id="confirm-draft1" style="background: #1976D2; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px;">
+            <i class="fas fa-check"></i> この案で確定する
+           </button>`;
+    
+    scheduleDiv.innerHTML = `
+        ${generateScheduleTableHTML(currentEditingSchedule, monthKey, staffListForAdmin)}
+        ${confirmButtonHTML}
+    `;
+    
+    draftDiv.appendChild(scheduleDiv);
+    resultsArea.appendChild(draftDiv);
+    
+    // イベントリスナーを再設定
+    if (!isConfirmed) {
         const confirmBtn = document.getElementById('confirm-draft1');
         if (confirmBtn) {
             confirmBtn.addEventListener('click', function() {
                 confirmSchedule('draft1');
             });
         }
-        
-        // 勤務交換モードを再有効化
-        enableShiftSwap('draft1');
-        
-        console.log("✅ スケジュール表を更新しました");
-    } else {
-        console.error("スケジュール表のコンテナが見つかりません");
     }
+    
+    // 勤務交換モードを再有効化
+    enableShiftSwap('draft1');
+    
+    console.log("✅ スケジュール表を再描画しました");
 }
 
     async function saveEditedSchedule() {
