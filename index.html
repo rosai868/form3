@@ -729,7 +729,18 @@
     console.log(`変更後: ${staffA.name}=${currentEditingSchedule[staffAUid].shifts[date]}, ${staffB.name}=${currentEditingSchedule[staffBUid].shifts[date]}`);
     
     closeSwapModal();
-    
+
+
+    // ★デバッグ用
+console.log("=== デバッグ情報 ===");
+console.log("currentMonth:", currentMonth);
+console.log("currentMonth ISO:", currentMonth.toISOString());
+console.log("monthKey:", currentMonth.toISOString().slice(0, 7));
+console.log("currentEditingDraft:", currentEditingDraft);
+console.log("currentEditingSchedule:", currentEditingSchedule);
+console.log("===================");
+
+
     // ★重要: 保存してから画面を更新
     await saveEditedSchedule();
     await refreshScheduleDisplay();
@@ -781,14 +792,23 @@
         
         console.log("スケジュール保存開始:", monthKey, currentEditingDraft);
         
-        // ★重要: ネストされたフィールドは一度に更新できないため、全体を取得して更新
-        const scheduleDoc = await firestore.collection('Schedules').doc(monthKey).get();
+        // ★改良: ドキュメントを取得（存在しない場合は新規作成）
+        const scheduleRef = firestore.collection('Schedules').doc(monthKey);
+        const scheduleDoc = await scheduleRef.get();
+        
+        let currentData;
         
         if (!scheduleDoc.exists) {
-            throw new Error("スケジュールドキュメントが見つかりません");
+            console.log("ドキュメントが存在しないため新規作成します");
+            // 新規作成
+            currentData = {
+                monthKey: monthKey,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                drafts: {}
+            };
+        } else {
+            currentData = scheduleDoc.data();
         }
-        
-        const currentData = scheduleDoc.data();
         
         // ★drafts全体を更新
         if (!currentData.drafts) {
@@ -796,7 +816,16 @@
         }
         
         if (!currentData.drafts[currentEditingDraft]) {
-            throw new Error(`draft ${currentEditingDraft} が見つかりません`);
+            console.log(`draft ${currentEditingDraft} を新規作成します`);
+            currentData.drafts[currentEditingDraft] = {
+                type: '手動編集版',
+                attempts: 1,
+                schedule: {},
+                validation: {
+                    criticalErrors: [],
+                    warnings: []
+                }
+            };
         }
         
         // スケジュールを更新
@@ -804,12 +833,13 @@
         currentData.drafts[currentEditingDraft].lastModified = firebase.firestore.FieldValue.serverTimestamp();
         
         // 全体を保存
-        await firestore.collection('Schedules').doc(monthKey).set(currentData, { merge: true });
+        await scheduleRef.set(currentData, { merge: true });
         
         console.log("✅ 編集したスケジュールを保存しました");
         
     } catch (error) {
         console.error("❌ スケジュール保存エラー:", error);
+        console.error("エラー詳細:", error.stack);
         showMessage("スケジュールの保存に失敗しました: " + error.message, 'error');
     }
 }
