@@ -476,28 +476,36 @@
     }
 
     function enableShiftSwap(draftKey) {
-        if (!currentScheduleData || !currentScheduleData.drafts) {
-            console.error("currentScheduleData が存在しません");
-            return;
-        }
-        
-        if (!currentScheduleData.drafts[draftKey]) {
-            console.error(`draft ${draftKey} が見つかりません`);
-            return;
-        }
-        
-        currentEditingDraft = draftKey;
-        const draft = currentScheduleData.drafts[draftKey];
-        currentEditingSchedule = JSON.parse(JSON.stringify(draft.schedule));
-        
-        console.log("勤務交換モード有効化:", draftKey);
-        
-        document.querySelectorAll('.schedule-table td[class^="shift-"]').forEach(cell => {
-            cell.style.cursor = 'pointer';
-            cell.removeEventListener('click', handleShiftCellClick);
-            cell.addEventListener('click', handleShiftCellClick);
-        });
+    if (!currentScheduleData || !currentScheduleData.drafts) {
+        console.error("currentScheduleData が存在しません");
+        return;
     }
+    
+    if (!currentScheduleData.drafts[draftKey]) {
+        console.error(`draft ${draftKey} が見つかりません`);
+        return;
+    }
+    
+    // ★重要: スケジュールの月情報を使用
+    if (currentScheduleData.monthKey) {
+        const [year, month] = currentScheduleData.monthKey.split('-');
+        currentMonth = new Date(parseInt(year), parseInt(month) - 1, 1);
+        console.log("スケジュールの月を設定:", currentScheduleData.monthKey);
+    }
+    
+    currentEditingDraft = draftKey;
+    const draft = currentScheduleData.drafts[draftKey];
+    currentEditingSchedule = JSON.parse(JSON.stringify(draft.schedule));
+    
+    console.log("勤務交換モード有効化:", draftKey);
+    console.log("編集対象月:", currentMonth.toISOString().slice(0, 7));
+    
+    document.querySelectorAll('.schedule-table td[class^="shift-"]').forEach(cell => {
+        cell.style.cursor = 'pointer';
+        cell.removeEventListener('click', handleShiftCellClick);
+        cell.addEventListener('click', handleShiftCellClick);
+    });
+}
 
     function handleShiftCellClick(event) {
         const cell = event.target;
@@ -1795,6 +1803,15 @@
 
             function displayScheduleResults(data, monthKey) {
                 currentScheduleData = data;
+                    // ★追加: monthKeyを保存
+                if (!currentScheduleData.monthKey) {
+                    currentScheduleData.monthKey = monthKey;
+                }
+                
+                // ★追加: currentMonthを正しく設定
+                const [year, month] = monthKey.split('-');
+                currentMonth = new Date(parseInt(year), parseInt(month) - 1, 1);
+                console.log("表示中のスケジュール月:", monthKey);
                 
                 resultsArea.innerHTML = `
                     <div style="background: #E8F5E9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
