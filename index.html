@@ -647,59 +647,65 @@
     }
 
     async function executeSwap(staffAUid, staffBUid, date, mode) {
-        console.log(`${mode}: ${staffAUid} ⇔ ${staffBUid} (${date}日)`);
-        
-        if (!staffListForAdmin || staffListForAdmin.length === 0) {
-            console.error("staffListForAdmin が存在しません");
-            showMessage("スタッフ情報の読み込みに失敗しました", 'error');
-            return;
-        }
-        
-        const staffA = staffListForAdmin.find(s => s.uid === staffAUid);
-        const staffB = staffListForAdmin.find(s => s.uid === staffBUid);
-        
-        if (!staffA || !staffB) {
-            console.error("スタッフが見つかりません", staffAUid, staffBUid);
-            showMessage("スタッフ情報が見つかりません", 'error');
-            return;
-        }
-        
-        const shiftA = currentEditingSchedule[staffAUid].shifts[date];
-        const shiftB = currentEditingSchedule[staffBUid].shifts[date];
-        
-        console.log(`変更前: ${staffA.name}=${shiftA}, ${staffB.name}=${shiftB}`);
-        
-        if (mode === 'exchange') {
-            currentEditingSchedule[staffAUid].shifts[date] = shiftB;
-            currentEditingSchedule[staffBUid].shifts[date] = shiftA;
-            
-            currentEditingSchedule[staffAUid].counts[shiftA]--;
-            currentEditingSchedule[staffAUid].counts[shiftB]++;
-            currentEditingSchedule[staffBUid].counts[shiftB]--;
-            currentEditingSchedule[staffBUid].counts[shiftA]++;
-            
-            showMessage(`${staffA.name} と ${staffB.name} の ${date}日のシフトを交換しました`, 'success');
-            
-        } else if (mode === 'transfer') {
-            currentEditingSchedule[staffBUid].shifts[date] = shiftA;
-            currentEditingSchedule[staffAUid].shifts[date] = '休';
-            
-            if (shiftB && currentEditingSchedule[staffBUid].counts[shiftB] !== undefined) {
-                currentEditingSchedule[staffBUid].counts[shiftB]--;
-            }
-            currentEditingSchedule[staffBUid].counts[shiftA]++;
-            currentEditingSchedule[staffAUid].counts[shiftA]--;
-            currentEditingSchedule[staffAUid].counts['休']++;
-            
-            showMessage(`${staffA.name} の ${date}日のシフトを ${staffB.name} に譲渡しました`, 'success');
-        }
-        
-        console.log(`変更後: ${staffA.name}=${currentEditingSchedule[staffAUid].shifts[date]}, ${staffB.name}=${currentEditingSchedule[staffBUid].shifts[date]}`);
-        
-        closeSwapModal();
-        await saveEditedSchedule();
-        refreshScheduleDisplay();
+    console.log(`${mode}: ${staffAUid} ⇔ ${staffBUid} (${date}日)`);
+    
+    if (!currentEditingSchedule || !currentEditingSchedule[staffAUid] || !currentEditingSchedule[staffBUid]) {
+        console.error("スケジュールデータが不正です");
+        showMessage("スケジュールデータの読み込みに失敗しました", 'error');
+        return;
     }
+    
+    const staffA = staffListForAdmin.find(s => s.uid === staffAUid);
+    const staffB = staffListForAdmin.find(s => s.uid === staffBUid);
+    
+    if (!staffA || !staffB) {
+        console.error("スタッフが見つかりません", staffAUid, staffBUid);
+        showMessage("スタッフ情報が見つかりません", 'error');
+        return;
+    }
+    
+    const shiftA = currentEditingSchedule[staffAUid].shifts[date];
+    const shiftB = currentEditingSchedule[staffBUid].shifts[date];
+    
+    console.log(`変更前: ${staffA.name}=${shiftA}, ${staffB.name}=${shiftB}`);
+    
+    if (mode === 'exchange') {
+        // 交換
+        currentEditingSchedule[staffAUid].shifts[date] = shiftB;
+        currentEditingSchedule[staffBUid].shifts[date] = shiftA;
+        
+        // カウント更新
+        currentEditingSchedule[staffAUid].counts[shiftA]--;
+        currentEditingSchedule[staffAUid].counts[shiftB]++;
+        currentEditingSchedule[staffBUid].counts[shiftB]--;
+        currentEditingSchedule[staffBUid].counts[shiftA]++;
+        
+        showMessage(`${staffA.name} と ${staffB.name} の ${date}日のシフトを交換しました`, 'success');
+        
+    } else if (mode === 'transfer') {
+        // 譲渡
+        currentEditingSchedule[staffBUid].shifts[date] = shiftA;
+        currentEditingSchedule[staffAUid].shifts[date] = '休';
+        
+        // カウント更新
+        if (shiftB && shiftB !== '休') {
+            currentEditingSchedule[staffBUid].counts[shiftB]--;
+        }
+        currentEditingSchedule[staffBUid].counts[shiftA]++;
+        currentEditingSchedule[staffAUid].counts[shiftA]--;
+        currentEditingSchedule[staffAUid].counts['休']++;
+        
+        showMessage(`${staffA.name} の ${date}日のシフトを ${staffB.name} に譲渡しました`, 'success');
+    }
+    
+    console.log(`変更後: ${staffA.name}=${currentEditingSchedule[staffAUid].shifts[date]}, ${staffB.name}=${currentEditingSchedule[staffBUid].shifts[date]}`);
+    
+    closeSwapModal();
+    
+    // ★重要: 保存してから画面を更新
+    await saveEditedSchedule();
+    await refreshScheduleDisplay();
+}
 
     function refreshScheduleDisplay() {
     const monthKey = currentMonth.toISOString().slice(0, 7);
@@ -742,23 +748,25 @@
 }
 
     async function saveEditedSchedule() {
-        try {
-            const monthKey = currentMonth.toISOString().slice(0, 7);
-            
-            console.log("スケジュール保存開始:", monthKey, currentEditingDraft);
-            
-            await firestore.collection('Schedules').doc(monthKey).update({
-                [`drafts.${currentEditingDraft}.schedule`]: currentEditingSchedule,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            console.log("✅ 編集したスケジュールを保存しました");
-            
-        } catch (error) {
-            console.error("❌ スケジュール保存エラー:", error);
-            showMessage("スケジュールの保存に失敗しました: " + error.message, 'error');
-        }
+    try {
+        const monthKey = currentMonth.toISOString().slice(0, 7);
+        
+        console.log("スケジュール保存開始:", monthKey, currentEditingDraft);
+        
+        // ★重要: scheduleオブジェクト全体を更新
+        const updateData = {};
+        updateData[`drafts.${currentEditingDraft}.schedule`] = currentEditingSchedule;
+        updateData[`drafts.${currentEditingDraft}.lastModified`] = firebase.firestore.FieldValue.serverTimestamp();
+        
+        await firestore.collection('Schedules').doc(monthKey).update(updateData);
+        
+        console.log("✅ 編集したスケジュールを保存しました");
+        
+    } catch (error) {
+        console.error("❌ スケジュール保存エラー:", error);
+        showMessage("スケジュールの保存に失敗しました: " + error.message, 'error');
     }
+}
 
     function showMessage(message, type) {
         const color = type === 'success' ? '#4CAF50' : '#D32F2F';
