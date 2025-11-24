@@ -776,7 +776,10 @@
         return result;
     }
 
-    async function executeSwap(staffAUid, staffBUid, date, mode) {
+    // ============================================
+// ★修正版★ 勤務交換実行
+// ============================================
+async function executeSwap(staffAUid, staffBUid, date, mode) {
     console.log(`${mode}: ${staffAUid} ⇔ ${staffBUid} (${date}日)`);
     
     if (!currentEditingSchedule || !currentEditingSchedule[staffAUid] || !currentEditingSchedule[staffBUid]) {
@@ -804,7 +807,7 @@
         currentEditingSchedule[staffAUid].shifts[date] = shiftB;
         currentEditingSchedule[staffBUid].shifts[date] = shiftA;
         
-        // ★修正: カウント更新（存在チェック付き）
+        // カウント更新
         if (currentEditingSchedule[staffAUid].counts[shiftA] > 0) {
             currentEditingSchedule[staffAUid].counts[shiftA]--;
         }
@@ -828,7 +831,7 @@
         currentEditingSchedule[staffBUid].shifts[date] = shiftA;
         currentEditingSchedule[staffAUid].shifts[date] = '休';
         
-        // ★修正: カウント更新（存在チェック付き）
+        // カウント更新
         if (shiftB && shiftB !== '休' && currentEditingSchedule[staffBUid].counts[shiftB] > 0) {
             currentEditingSchedule[staffBUid].counts[shiftB]--;
         }
@@ -851,28 +854,25 @@
     console.log(`変更後: ${staffA.name}=${currentEditingSchedule[staffAUid].shifts[date]}, ${staffB.name}=${currentEditingSchedule[staffBUid].shifts[date]}`);
     
     closeSwapModal();
-
-
-    // ★デバッグ用
-console.log("=== デバッグ情報 ===");
-console.log("currentMonth:", currentMonth);
-console.log("currentMonth ISO:", currentMonth.toISOString());
-console.log("monthKey:", currentMonth.toISOString().slice(0, 7));
-console.log("currentEditingDraft:", currentEditingDraft);
-console.log("currentEditingSchedule:", currentEditingSchedule);
-console.log("===================");
-
-
+    
     // ★重要: 保存してから画面を更新
     await saveEditedSchedule();
-
+    
     // ★少し待ってから更新（Firestoreの書き込み完了を待つ）
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    // ★修正: currentScheduleDataを更新してから再描画
+    if (currentScheduleData && currentScheduleData.drafts && currentScheduleData.drafts[currentEditingDraft]) {
+        currentScheduleData.drafts[currentEditingDraft].schedule = currentEditingSchedule;
+    }
+    
     refreshScheduleDisplay();
 }
-    function refreshScheduleDisplay() {
-    // ★修正: 安全な月キー生成
+
+// ============================================
+// ★修正版★ 画面再描画
+// ============================================
+function refreshScheduleDisplay() {
     const year = currentMonth.getFullYear();
     const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
     const monthKey = `${year}-${month}`;
@@ -904,13 +904,10 @@ console.log("===================");
         return;
     }
     
-    // 既存の内容を完全にクリア
-    const existingDrafts = resultsArea.querySelectorAll('div[style*="margin-top: 20px"]');
-    existingDrafts.forEach(function(div) {
-        div.remove();
-    });
+    // ★既存の表を削除（完全クリア）
+    resultsArea.innerHTML = '';
     
-    // 新しい表を生成
+    // ★新しい表を生成
     const warningCount = draft.validation && draft.validation.warnings ? draft.validation.warnings.length : 0;
     const validationStatus = warningCount === 0
         ? '<span style="color: #2E7D32;">✓ すべての必須条件をクリア</span>' 
@@ -967,7 +964,6 @@ console.log("===================");
           '<i class="fas fa-check"></i> この案で確定する' +
           '</button>';
     
-    // ★修正: テンプレートリテラルを使わない
     scheduleDiv.innerHTML = generateScheduleTableHTML(currentEditingSchedule, monthKey, staffListForAdmin) + confirmButtonHTML;
     
     draftDiv.appendChild(scheduleDiv);
