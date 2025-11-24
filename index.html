@@ -2351,13 +2351,15 @@ if (loadBtn) {
         generateBtn.innerHTML = '<i class="fas fa-magic"></i> 勤務表の作成を開始';
     }
 });
-     async function pollJobStatus(jobId, monthKey) {
-    const maxAttempts = 60;
+     
+
+async function pollJobStatus(jobId, monthKey) {
+    const maxAttempts = 120;  // 10分 (5秒×120)
     const interval = 5000;
     let attempt = 0;
     
-    // ★プログレスバーを表示
-    showProgressUI();
+    // ★OR-Tools用のシンプルなプログレスUI
+    showSimpleProgressUI();
 
     while (attempt < maxAttempts) {
         attempt++;
@@ -2373,11 +2375,11 @@ if (loadBtn) {
             }
 
             const status = statusResult.status;
-            const progress = statusResult.progress; // ★進捗情報を取得
+            const progress = statusResult.progress;
 
             if (status === "completed") {
                 console.log("処理完了!結果を取得します...");
-                updateProgressUI(100, progress); // ★100%に更新
+                updateSimpleProgressUI(100, '完了しました！'); // ★100%に更新
                 
                 const scheduleUrl = GAS_API_URL + '?action=getSchedule&month=' + monthKey + '&v=' + new Date().getTime();
                 const scheduleResult = await callGASWithJSONP(scheduleUrl);
@@ -2392,19 +2394,10 @@ if (loadBtn) {
                 throw new Error("スケジュール生成に失敗しました");
 
             } else if (status === "processing" || status === "pending") {
-                // ★進捗情報を表示
-                if (progress) {
-                    updateProgressUI(progress.percentage, progress);
-                } else {
-                    // 進捗情報がない場合は推定値
-                    const estimatedPercentage = Math.min((attempt * 5), 95);
-                    updateProgressUI(estimatedPercentage, {
-                        attempts: '?',
-                        maxAttempts: '?',
-                        currentScore: '計算中',
-                        elapsedTime: attempt * interval / 1000
-                    });
-                }
+                // ★シンプルな進捗表示
+                const estimatedPercentage = Math.min((attempt * 0.8), 95);
+                const elapsedSeconds = attempt * interval / 1000;
+                updateSimpleProgressUI(estimatedPercentage, 'OR-Toolsで最適化中... (' + elapsedSeconds + '秒経過)');
                 
                 await sleep(interval);
                 continue;
@@ -2425,75 +2418,48 @@ if (loadBtn) {
     throw new Error("タイムアウト: 処理が完了しませんでした");
 }
 
-// ★新規関数: プログレスUIを表示
-function showProgressUI() {
+// ★新規関数: シンプルなプログレスUIを表示
+function showSimpleProgressUI() {
     resultsArea.innerHTML = `
         <div class="progress-container">
             <div class="progress-header">
                 <div class="progress-status processing">
-                    <span class="spinner"></span> スケジュールを生成中...
+                    <span class="spinner"></span> OR-Toolsで最適化中...
                 </div>
-                <div class="progress-time" id="progress-elapsed">経過時間: 0秒</div>
+                <div class="progress-time" id="simple-progress-elapsed">経過時間: 0秒</div>
             </div>
             
             <div class="progress-bar-container">
-                <div class="progress-bar" id="progress-bar" style="width: 0%;">
+                <div class="progress-bar" id="simple-progress-bar" style="width: 0%;">
                     0%
                 </div>
             </div>
             
-            <div class="progress-details">
-                <div class="progress-detail-item">
-                    <div class="progress-detail-label">試行回数</div>
-                    <div class="progress-detail-value" id="progress-attempts">0 / ?</div>
-                </div>
-                <div class="progress-detail-item">
-                    <div class="progress-detail-label">現在のスコア</div>
-                    <div class="progress-detail-value score" id="progress-score">計算中</div>
-                </div>
-                <div class="progress-detail-item">
-                    <div class="progress-detail-label">推定残り時間</div>
-                    <div class="progress-detail-value time" id="progress-remaining">計算中</div>
-                </div>
+            <div style="text-align: center; padding: 20px; color: #666; font-size: 14px;">
+                <p>⏳ Cloud Runで最適化処理を実行中です</p>
+                <p style="font-size: 12px; margin-top: 10px;">
+                    この処理には5〜10分かかる場合があります<br>
+                    ブラウザを閉じても、結果は保存されます
+                </p>
             </div>
         </div>
     `;
 }
 
-// ★新規関数: プログレスUIを更新
-function updateProgressUI(percentage, progress) {
-    const progressBar = document.getElementById('progress-bar');
-    const attemptsEl = document.getElementById('progress-attempts');
-    const scoreEl = document.getElementById('progress-score');
-    const elapsedEl = document.getElementById('progress-elapsed');
-    const remainingEl = document.getElementById('progress-remaining');
+// ★新規関数: シンプルなプログレスUIを更新
+function updateSimpleProgressUI(percentage, message) {
+    const progressBar = document.getElementById('simple-progress-bar');
+    const statusEl = document.querySelector('.progress-status');
     
     if (progressBar) {
         progressBar.style.width = percentage + '%';
         progressBar.textContent = Math.round(percentage) + '%';
     }
     
-    if (progress) {
-        if (attemptsEl) {
-            attemptsEl.textContent = progress.attempts + ' / ' + progress.maxAttempts;
-        }
-        
-        if (scoreEl) {
-            scoreEl.textContent = progress.currentScore === 0 ? '計算中' : progress.currentScore;
-        }
-        
-        if (elapsedEl) {
-            elapsedEl.textContent = '経過時間: ' + progress.elapsedTime + '秒';
-        }
-        
-        if (remainingEl && progress.percentage > 0) {
-            const avgTimePerPercent = progress.elapsedTime / progress.percentage;
-            const remainingPercentage = 100 - progress.percentage;
-            const estimatedRemaining = Math.round(avgTimePerPercent * remainingPercentage);
-            remainingEl.textContent = estimatedRemaining + '秒';
-        }
+    if (statusEl) {
+        statusEl.innerHTML = '<span class="spinner"></span> ' + message;
     }
-}       
+}
 
             function sleep(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
