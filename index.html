@@ -2354,7 +2354,7 @@ if (loadBtn) {
      
 
 async function pollJobStatus(jobId, monthKey) {
-    const maxAttempts = 120;  // 10分 (5秒×120)
+    const maxAttempts = 180;  // 15分 (5秒×180)
     const interval = 5000;
     let attempt = 0;
     
