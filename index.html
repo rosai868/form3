@@ -526,6 +526,9 @@
     </div>
 
     <script>
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwga1qFM9TnrW7OC1sFX0jVxkIuUkU4CfDZfkBfMotztNKG6fX2bfd4AwNXpo8_Y1t9nQ/exec"; 
+    // 互換性のためのエイリアス
+    const GAS_URL = GAS_API_URL;
     // ============================================
     // Firebaseの設定
     // ============================================
@@ -2183,9 +2186,7 @@ function formatTimestamp(timestamp) {
             const resultsArea = document.getElementById('schedule-results');
             const testBtn = document.getElementById('gasTestButton'); 
 
-            const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwga1qFM9TnrW7OC1sFX0jVxkIuUkU4CfDZfkBfMotztNKG6fX2bfd4AwNXpo8_Y1t9nQ/exec"; 
-            // 互換性のためのエイリアス
-            const GAS_URL = GAS_API_URL;
+            
             
             function callGASWithJSONP(url) {
     return new Promise((resolve, reject) => {
