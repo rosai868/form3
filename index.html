@@ -2474,6 +2474,9 @@ function updateSimpleProgressUI(percentage, message) {
             }
 
     function displayScheduleResults(data, monthKey) {
+    console.log("=== displayScheduleResults 開始 ===");
+    console.log("受信データ:", data);
+    
     currentScheduleData = data;
     
     if (!currentScheduleData.monthKey) {
@@ -2485,39 +2488,50 @@ function updateSimpleProgressUI(percentage, message) {
     const month = parseInt(parts[1]);
     currentMonth = new Date(year, month - 1, 1);
     
-    // === 改善点: 結果ヘッダー情報の詳細化 ===
-    let statusHtml = '<div style="background: #E8F5E9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">';
+    // ★★★ 修正: データ構造を確認してdraftを取得 ★★★
+    let draft = null;
     
-    if (data.success) {
-        statusHtml += `<h4 style="color: #2E7D32; margin-bottom: 5px;"><i class="fas fa-check-circle"></i> 作成完了 (スコア: ${data.score})</h4>`;
-        statusHtml += `<p style="font-size: 13px; color: #555;">計算時間: ${parseFloat(data.execution_time || 0).toFixed(2)}秒 / 試行回数: ${data.attempt || 1}</p>`;
+    if (data.drafts && data.drafts.draft1) {
+        draft = data.drafts.draft1;
+        console.log("drafts.draft1 形式で取得");
+    } else if (data.schedule) {
+        draft = {
+            schedule: data.schedule,
+            validation: data.validation || { criticalErrors: [], warnings: [] },
+            type: '自動生成',
+            attempts: data.attempt || 1,
+            score: data.score,
+            elapsedTime: data.execution_time
+        };
+        currentScheduleData.drafts = { draft1: draft };
+        console.log("schedule直接形式で取得");
     } else {
-        statusHtml += `<h4 style="color: #D32F2F;"><i class="fas fa-exclamation-triangle"></i> 作成失敗</h4>`;
-        statusHtml += `<p>${data.message || '制約を満たす解が見つかりませんでした'}</p>`;
-    }
-    statusHtml += '</div>';
-
-    // === 改善点: 「叶わなかった希望」の表示エリア追加 ===
-    if (data.unmet_requests && data.unmet_requests.length > 0) {
-        statusHtml += '<div style="background: #FFF3E0; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #FF9800;">';
-        statusHtml += '<h4 style="color: #E65100; margin-bottom: 10px;"><i class="fas fa-clipboard-list"></i> 調整された希望 (叶わなかったもの)</h4>';
-        statusHtml += '<ul style="font-size: 13px; color: #BF360C; max-height: 150px; overflow-y: auto;">';
-        data.unmet_requests.forEach(req => {
-            statusHtml += `<li>${req}</li>`;
-        });
-        statusHtml += '</ul></div>';
-    } else if (data.success) {
-        statusHtml += '<div style="background: #E1F5FE; padding: 10px; border-radius: 8px; margin-bottom: 20px; color: #0277BD; font-size: 13px;">';
-        statusHtml += '<i class="fas fa-star"></i> 素晴らしい！すべての希望が叶えられました。';
-        statusHtml += '</div>';
-    }
-
-    resultsArea.innerHTML = statusHtml;
-
-    if (!data.schedule) {
+        console.error("スケジュールデータが見つかりません:", Object.keys(data));
+        resultsArea.innerHTML = 
+            '<div style="background: #FFEBEE; padding: 15px; border-radius: 8px;">' +
+            '<p class="error-message">スケジュールデータが見つかりません</p>' +
+            '</div>';
         return;
     }
     
+    // 結果ヘッダー
+    const score = draft.score || data.score;
+    const execTime = draft.elapsedTime || data.execution_time;
+    const attempts = draft.attempts || data.attempt || 1;
+    
+    let statusHtml = '<div style="background: #E8F5E9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">';
+    statusHtml += '<h4 style="color: #2E7D32;"><i class="fas fa-check-circle"></i> 作成完了' + (score ? ' (スコア: ' + score + ')' : '') + '</h4>';
+    statusHtml += '<p style="font-size: 13px; color: #555;">計算時間: ' + (execTime ? parseFloat(execTime).toFixed(2) : '?') + '秒 / 試行回数: ' + attempts + '</p>';
+    statusHtml += '</div>';
+    
+    resultsArea.innerHTML = statusHtml;
+    
+    if (!draft.schedule) {
+        resultsArea.innerHTML += '<p style="color: red;">スケジュール詳細データがありません</p>';
+        return;
+    }
+    
+    // 以下は元のコードと同じ（draftが定義済みなので動作する）
     const hasCriticalErrors = draft.validation && 
                                draft.validation.criticalErrors && 
                                draft.validation.criticalErrors.length > 0;
@@ -2537,13 +2551,7 @@ function updateSimpleProgressUI(percentage, message) {
             '<h4 style="color: #D32F2F;">' + (draft.type || '勤務表') + ' ⚠️ 必須条件未達</h4>' +
             '</div>' +
             '<div style="padding: 15px; background: #FFF9F9;">' +
-            '<p style="color: #D32F2F; font-weight: bold; margin-bottom: 10px;">' +
-            (draft.attempts || 50) + ' 回試行しましたが、以下の必須条件が満たせませんでした:' +
-            '</p>' +
             errorsHtml +
-            '<p style="color: #666; margin-top: 15px; font-size: 13px;">' +
-            '<em>※ より多くの試行回数で再度生成するか、希望内容を調整してください。</em>' +
-            '</p>' +
             '</div>';
         resultsArea.appendChild(draftDiv);
         return;
@@ -2554,36 +2562,20 @@ function updateSimpleProgressUI(percentage, message) {
         ? '<span style="color: #2E7D32;">✓ すべての必須条件をクリア</span>' 
         : '<span style="color: #F57C00;">⚠ 警告 ' + warningCount + '件</span>';
     
-    const confirmButtonId = 'confirm-draft1';
-    
-    let attemptsInfo = '';
-    if (draft.attempts) {
-        attemptsInfo = '<span style="font-size: 13px; color: #666;">(' + 
-                       draft.attempts + '回試行、' + 
-                       (draft.elapsedTime || '?') + '秒、スコア: ' + 
-                       (draft.score || '?') + ')</span>';
-    }
-    
     draftDiv.innerHTML = 
         '<div style="background: #F8F8F8; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">' +
-        '<h4 style="color: #5D4037;">' + (draft.type || '勤務表') + ' ' + attemptsInfo + '</h4>' +
+        '<h4 style="color: #5D4037;">' + (draft.type || '勤務表') + '</h4>' +
         '<div>' + validationStatus + '</div>' +
         '</div>';
     
     if (warningCount > 0) {
         const warningDiv = document.createElement('div');
         warningDiv.style = "padding: 10px 15px; background: #FFF3E0; border-left: 4px solid #F57C00;";
-        
         let warningsHtml = '<ul style="margin: 5px 0 0 20px; color: #E65100;">';
-        const maxWarnings = Math.min(10, draft.validation.warnings.length);
-        for (let i = 0; i < maxWarnings; i++) {
+        for (let i = 0; i < Math.min(10, draft.validation.warnings.length); i++) {
             warningsHtml += '<li>' + draft.validation.warnings[i] + '</li>';
         }
-        if (warningCount > 10) {
-            warningsHtml += '<li>... 他 ' + (warningCount - 10) + ' 件</li>';
-        }
         warningsHtml += '</ul>';
-        
         warningDiv.innerHTML = '<strong style="color: #E65100;">警告事項:</strong>' + warningsHtml;
         draftDiv.appendChild(warningDiv);
     }
@@ -2591,18 +2583,18 @@ function updateSimpleProgressUI(percentage, message) {
     const scheduleDiv = document.createElement('div');
     scheduleDiv.style = "padding: 15px; overflow-x: auto;";
     scheduleDiv.innerHTML = generateScheduleTableHTML(draft.schedule, monthKey, staffListForAdmin) +
-        '<button id="' + confirmButtonId + '" style="background: #1976D2; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px;">' +
-        '<i class="fas fa-check"></i> この案で確定する' +
-        '</button>';
+        '<button id="confirm-draft1" style="background: #1976D2; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px;">' +
+        '<i class="fas fa-check"></i> この案で確定する</button>';
     
     draftDiv.appendChild(scheduleDiv);
     resultsArea.appendChild(draftDiv);
     
-    document.getElementById(confirmButtonId).addEventListener('click', function() {
+    document.getElementById('confirm-draft1').addEventListener('click', function() {
         confirmSchedule('draft1');
     });
     
     enableShiftSwap('draft1');
+    console.log("=== displayScheduleResults 完了 ===");
 }
 
 
