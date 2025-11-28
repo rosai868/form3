@@ -1220,6 +1220,109 @@ async function executeSwap(staffAUid, staffBUid, date, mode) {
 // ============================================
 // ★修正版★ 画面再描画
 // ============================================
+// ============================================
+// ★修正版★ スコア再計算と赤枠更新機能
+// ============================================
+
+// スコア計算関数
+function calculateScheduleScore(schedule, requestsData, staffList) {
+    let score = 0;
+    let fulfilled = 0;
+    let unfulfilled = 0;
+    
+    const WEIGHTS = {
+        REQUEST_WEIGHT: 2,        // 休・日の希望充足 +2
+        WORK_FAIRNESS: 1,         // 勤務日数公平性 -1
+        NIGHT_FAIRNESS: 1,        // 夜勤回数公平性 -1
+        PATTERN_BONUS: 3          // 準準休夜夜休パターン +3
+    };
+    
+    const workCounts = [];
+    const nightCounts = [];
+    
+    staffList.forEach(function(staff) {
+        if (staff.originalId === 31) return;
+        if (staff.originalId === 1 || staff.originalId === 2) return; // 管理者除外
+        if (staff.weekdayDayOnly) return; // 平日日勤専門除外
+        
+        const staffSchedule = schedule[staff.uid];
+        if (!staffSchedule) return;
+        
+        // 勤務日数カウント
+        let workCount = 0;
+        let nightCount = 0;
+        
+        Object.values(staffSchedule.shifts).forEach(function(shift) {
+            if (shift !== '休' && shift !== '年' && shift !== '出' && shift !== '特' && 
+                shift !== 'AM' && shift !== 'PM' && shift !== '夏') {
+                workCount++;
+            }
+            if (shift === '準' || shift === '夜') {
+                nightCount++;
+            }
+        });
+        
+        workCounts.push(workCount);
+        nightCounts.push(nightCount);
+        
+        // 希望チェック（休・日のみ）
+        const staffRequests = requestsData[staff.uid];
+        if (staffRequests && staffRequests.dates) {
+            Object.keys(staffRequests.dates).forEach(function(dateKey) {
+                const requestType = staffRequests.dates[dateKey];
+                
+                // 休・日の希望のみスコアに反映
+                if (requestType === '休' || requestType === '日') {
+                    const day = dateKey.includes('-') ? parseInt(dateKey.split('-')[2]) : parseInt(dateKey);
+                    const actualShift = staffSchedule.shifts[day] || staffSchedule.shifts[String(day)];
+                    
+                    if (requestType === '休') {
+                        if (actualShift === '休' || actualShift === '年' || actualShift === '出' || 
+                            actualShift === '特' || actualShift === 'AM' || actualShift === 'PM' || actualShift === '夏') {
+                            score += WEIGHTS.REQUEST_WEIGHT;
+                            fulfilled++;
+                        } else {
+                            unfulfilled++;
+                        }
+                    } else if (requestType === '日') {
+                        if (actualShift === '日') {
+                            score += WEIGHTS.REQUEST_WEIGHT;
+                            fulfilled++;
+                        } else {
+                            unfulfilled++;
+                        }
+                    }
+                }
+            });
+        }
+    });
+    
+    // 勤務日数公平性
+    if (workCounts.length > 0) {
+        const avgWork = 20; // 平均勤務日数
+        workCounts.forEach(function(wc) {
+            score -= Math.abs(wc - avgWork) * WEIGHTS.WORK_FAIRNESS;
+        });
+    }
+    
+    // 夜勤回数公平性
+    if (nightCounts.length > 0) {
+        const avgNight = 6; // 平均夜勤回数
+        nightCounts.forEach(function(nc) {
+            score -= Math.abs(nc - avgNight) * WEIGHTS.NIGHT_FAIRNESS;
+        });
+    }
+    
+    return {
+        score: score,
+        fulfilled: fulfilled,
+        unfulfilled: unfulfilled
+    };
+}
+
+// ============================================
+// ★修正版★ 画面再描画（スコア更新付き）
+// ============================================
 function refreshScheduleDisplay() {
     const year = currentMonth.getFullYear();
     const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
@@ -1243,7 +1346,12 @@ function refreshScheduleDisplay() {
     // ★重要: スケジュールデータを更新
     draft.schedule = currentEditingSchedule;
     
-    console.log("スケジュールデータを更新しました");
+    // ★★★ スコアを再計算 ★★★
+    const requestsData = allRequestsForAdmin || {};
+    const scoreResult = calculateScheduleScore(currentEditingSchedule, requestsData, staffListForAdmin);
+    draft.score = scoreResult.score;
+    
+    console.log("スコア再計算:", scoreResult);
     
     // ★表全体を再描画
     const resultsArea = document.getElementById('schedule-results');
@@ -1254,6 +1362,20 @@ function refreshScheduleDisplay() {
     
     // ★既存の表を削除（完全クリア）
     resultsArea.innerHTML = '';
+    
+    // ★ヘッダー部分（スコア表示付き）
+    let statusHtml = '<div style="background: #E8F5E9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">';
+    statusHtml += '<h4 style="color: #2E7D32;"><i class="fas fa-check-circle"></i> OR-Tools最適化';
+    statusHtml += ' (スコア: <span id="current-score">' + scoreResult.score + '</span>)</h4>';
+    statusHtml += '<p style="font-size: 13px; color: #555;">';
+    statusHtml += '希望充足: ' + scoreResult.fulfilled + '件 / 未充足: ' + scoreResult.unfulfilled + '件';
+    if (draft.elapsedTime) {
+        statusHtml += ' / 計算時間: ' + parseFloat(draft.elapsedTime).toFixed(2) + '秒';
+    }
+    statusHtml += '</p>';
+    statusHtml += '</div>';
+    
+    resultsArea.innerHTML = statusHtml;
     
     // ★新しい表を生成
     const warningCount = draft.validation && draft.validation.warnings ? draft.validation.warnings.length : 0;
@@ -1268,9 +1390,7 @@ function refreshScheduleDisplay() {
     let attemptsInfo = '';
     if (draft.attempts) {
         attemptsInfo = '<span style="font-size: 13px; color: #666;">(' + 
-                       draft.attempts + '回試行、' + 
-                       (draft.elapsedTime || '?') + '秒、スコア: ' + 
-                       (draft.score || '?') + ')</span>';
+                       draft.attempts + '回試行)</span>';
     }
     
     draftDiv.innerHTML = 
@@ -1330,7 +1450,7 @@ function refreshScheduleDisplay() {
     // 勤務交換モードを再有効化
     enableShiftSwap('draft1');
     
-    console.log("✅ スケジュール表を再描画しました");
+    console.log("✅ スケジュール表を再描画しました（スコア: " + scoreResult.score + "）");
 }
     async function saveEditedSchedule() {
     try {
