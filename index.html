@@ -647,8 +647,11 @@
                 cellStyle = 'background: #F4F9FF;';
             }
             
+            // 変更後
             const requestedShift = staffRequestDates[dateString] || staffRequestDates[String(d)];
-            if (requestedShift && requestedShift !== shift) {
+            // ★赤枠条件: 希望と異なる かつ 実際のシフトが休み系以外の場合のみ
+            const isRestShift = ['休', '年', '出', '特', 'AM', 'PM', '夏'].includes(shift);
+            if (requestedShift && requestedShift !== shift && !isRestShift) {
                 cellStyle += ' border: 3px solid #D32F2F; box-sizing: border-box;';
             }
             
@@ -1008,35 +1011,169 @@ function closeSwapModal() {
         showSwapModal(staff, date, currentShift);
     }
 
-    function showSwapModal(staff, date, currentShift) {
-        const modal = document.getElementById('shift-swap-modal');
-        const content = document.getElementById('swap-modal-content');
-        
-        const monthKey = currentMonth.toISOString().slice(0, 7);
-        const dateObj = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), date);
-        const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
-        
-        content.innerHTML = `
-            <div style="background: #F5F5F5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <h4 style="margin: 0 0 10px 0; color: #5D4037;">変更対象</h4>
-                <p style="margin: 0; font-size: 16px;">
-                    <strong>${staff.name}</strong> ${staff.team}チーム - 
-                    <strong>${monthKey.split('-')[1]}月${date}日 (${dayOfWeek})</strong>
-                </p>
-                <p style="margin: 5px 0 0 0; color: #666;">
-                    現在: <span class="shift-${currentShift}" style="padding: 4px 8px; border-radius: 4px; font-weight: bold;">${currentShift}</span>
-                </p>
-            </div>
-            
-            <h4 style="color: #5D4037; margin-bottom: 15px;">交換・譲渡候補</h4>
-            <div id="candidate-list">
-                ${generateCandidateList(staff, date, currentShift)}
-            </div>
-        `;
-        
-        modal.style.display = 'block';
-    }
+    // ============================================
+// ★修正版★ シフト変更モーダル（全シフト選択可能）
+// ============================================
 
+function showSwapModal(staff, date, currentShift) {
+    const modal = document.getElementById('shift-swap-modal');
+    const content = document.getElementById('swap-modal-content');
+    
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth() + 1;
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const dateObj = new Date(year, month - 1, date);
+    const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
+    
+    // 希望情報を取得
+    const requestsData = allRequestsForAdmin || {};
+    const staffRequests = requestsData[staff.uid];
+    const staffRequestDates = staffRequests && staffRequests.dates ? staffRequests.dates : {};
+    const dateString = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+    const requestedShift = staffRequestDates[dateString] || staffRequestDates[String(date)] || null;
+    
+    let requestInfo = '';
+    if (requestedShift) {
+        requestInfo = `<p style="margin: 5px 0 0 0; color: #D32F2F;">
+            希望: <span style="padding: 4px 8px; border-radius: 4px; font-weight: bold; background: #FFEBEE;">${requestedShift}</span>
+        </p>`;
+    }
+    
+    content.innerHTML = `
+        <div style="background: #F5F5F5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 10px 0; color: #5D4037;">変更対象</h4>
+            <p style="margin: 0; font-size: 16px;">
+                <strong>${staff.name}</strong> ${staff.team}チーム - 
+                <strong>${month}月${date}日 (${dayOfWeek})</strong>
+            </p>
+            <p style="margin: 5px 0 0 0; color: #666;">
+                現在: <span class="shift-${currentShift}" style="padding: 4px 8px; border-radius: 4px; font-weight: bold;">${currentShift}</span>
+            </p>
+            ${requestInfo}
+        </div>
+        
+        <!-- ★★★ 直接シフト変更セクション ★★★ -->
+        <h4 style="color: #5D4037; margin-bottom: 15px;">シフトを直接変更</h4>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+            <button class="shift-select-btn ${currentShift === '日' ? 'active' : ''}" 
+                    onclick="directShiftChange('${staff.uid}', ${date}, '日')"
+                    style="padding: 12px; border: 2px solid #4CAF50; border-radius: 8px; background: ${currentShift === '日' ? '#E8F5E9' : 'white'}; color: #388E3C; font-weight: bold; cursor: pointer;">
+                日勤
+            </button>
+            <button class="shift-select-btn ${currentShift === '準' ? 'active' : ''}" 
+                    onclick="directShiftChange('${staff.uid}', ${date}, '準')"
+                    style="padding: 12px; border: 2px solid #03A9F4; border-radius: 8px; background: ${currentShift === '準' ? '#E1F5FE' : 'white'}; color: #0277BD; font-weight: bold; cursor: pointer;">
+                準夜
+            </button>
+            <button class="shift-select-btn ${currentShift === '夜' ? 'active' : ''}" 
+                    onclick="directShiftChange('${staff.uid}', ${date}, '夜')"
+                    style="padding: 12px; border: 2px solid #3F51B5; border-radius: 8px; background: ${currentShift === '夜' ? '#E8EAF6' : 'white'}; color: #303F9F; font-weight: bold; cursor: pointer;">
+                夜勤
+            </button>
+            <button class="shift-select-btn ${currentShift === '休' ? 'active' : ''}" 
+                    onclick="directShiftChange('${staff.uid}', ${date}, '休')"
+                    style="padding: 12px; border: 2px solid #9E9E9E; border-radius: 8px; background: ${currentShift === '休' ? '#F5F5F5' : 'white'}; color: #616161; font-weight: bold; cursor: pointer;">
+                休み
+            </button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+            <button class="shift-select-btn ${currentShift === '年' ? 'active' : ''}" 
+                    onclick="directShiftChange('${staff.uid}', ${date}, '年')"
+                    style="padding: 10px; border: 2px solid #42A5F5; border-radius: 8px; background: ${currentShift === '年' ? '#E3F2FD' : 'white'}; color: #1976D2; font-weight: bold; cursor: pointer; font-size: 12px;">
+                年休
+            </button>
+            <button class="shift-select-btn ${currentShift === '夏' ? 'active' : ''}" 
+                    onclick="directShiftChange('${staff.uid}', ${date}, '夏')"
+                    style="padding: 10px; border: 2px solid #FF9800; border-radius: 8px; background: ${currentShift === '夏' ? '#FFF3E0' : 'white'}; color: #F57C00; font-weight: bold; cursor: pointer; font-size: 12px;">
+                夏休
+            </button>
+            <button class="shift-select-btn ${currentShift === '特' ? 'active' : ''}" 
+                    onclick="directShiftChange('${staff.uid}', ${date}, '特')"
+                    style="padding: 10px; border: 2px solid #9575CD; border-radius: 8px; background: ${currentShift === '特' ? '#F3E5F5' : 'white'}; color: #7B1FA2; font-weight: bold; cursor: pointer; font-size: 12px;">
+                特休
+            </button>
+            <button class="shift-select-btn ${currentShift === '出' ? 'active' : ''}" 
+                    onclick="directShiftChange('${staff.uid}', ${date}, '出')"
+                    style="padding: 10px; border: 2px solid #FFA726; border-radius: 8px; background: ${currentShift === '出' ? '#FFF8E1' : 'white'}; color: #EF6C00; font-weight: bold; cursor: pointer; font-size: 12px;">
+                出張
+            </button>
+            <button class="shift-select-btn ${currentShift === 'AM' ? 'active' : ''}" 
+                    onclick="directShiftChange('${staff.uid}', ${date}, 'AM')"
+                    style="padding: 10px; border: 2px solid #03A9F4; border-radius: 8px; background: ${currentShift === 'AM' ? '#E1F5FE' : 'white'}; color: #0288D1; font-weight: bold; cursor: pointer; font-size: 12px;">
+                AM休
+            </button>
+            <button class="shift-select-btn ${currentShift === 'PM' ? 'active' : ''}" 
+                    onclick="directShiftChange('${staff.uid}', ${date}, 'PM')"
+                    style="padding: 10px; border: 2px solid #3F51B5; border-radius: 8px; background: ${currentShift === 'PM' ? '#E8EAF6' : 'white'}; color: #303F9F; font-weight: bold; cursor: pointer; font-size: 12px;">
+                PM休
+            </button>
+        </div>
+        
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #E0E0E0;">
+        
+        <h4 style="color: #5D4037; margin-bottom: 15px;">他スタッフと交換・譲渡</h4>
+        <div id="candidate-list">
+            ${generateCandidateList(staff, date, currentShift)}
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+}
+
+// ============================================
+// ★新規★ 直接シフト変更
+// ============================================
+async function directShiftChange(staffUid, date, newShift) {
+    console.log(`直接変更: ${staffUid} - ${date}日 → ${newShift}`);
+    
+    if (!currentEditingSchedule || !currentEditingSchedule[staffUid]) {
+        console.error("スケジュールデータが不正です");
+        showMessage("スケジュールデータの読み込みに失敗しました", 'error');
+        return;
+    }
+    
+    const staff = staffListForAdmin.find(s => s.uid === staffUid);
+    if (!staff) {
+        console.error("スタッフが見つかりません", staffUid);
+        return;
+    }
+    
+    const oldShift = currentEditingSchedule[staffUid].shifts[date];
+    
+    if (oldShift === newShift) {
+        showMessage("同じシフトです", 'info');
+        return;
+    }
+    
+    // シフトを変更
+    currentEditingSchedule[staffUid].shifts[date] = newShift;
+    
+    // カウント更新
+    if (oldShift && currentEditingSchedule[staffUid].counts[oldShift] > 0) {
+        currentEditingSchedule[staffUid].counts[oldShift]--;
+    }
+    if (!currentEditingSchedule[staffUid].counts[newShift]) {
+        currentEditingSchedule[staffUid].counts[newShift] = 0;
+    }
+    currentEditingSchedule[staffUid].counts[newShift]++;
+    
+    console.log(`変更完了: ${staff.name} ${date}日 ${oldShift} → ${newShift}`);
+    showMessage(`${staff.name}の${date}日を ${oldShift} → ${newShift} に変更しました`, 'success');
+    
+    closeSwapModal();
+    
+    // 保存してから画面を更新
+    await saveEditedSchedule();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // currentScheduleDataを更新
+    if (currentScheduleData && currentScheduleData.drafts && currentScheduleData.drafts[currentEditingDraft]) {
+        currentScheduleData.drafts[currentEditingDraft].schedule = currentEditingSchedule;
+    }
+    
+    refreshScheduleDisplay();
+}
     function generateCandidateList(targetStaff, date, targetShift) {
         const candidates = staffListForAdmin.filter(s => 
             s.originalId !== 31 && 
@@ -1225,16 +1362,19 @@ async function executeSwap(staffAUid, staffBUid, date, mode) {
 // ============================================
 
 // スコア計算関数
+// ============================================
+// ★修正版★ スコア再計算（赤枠と同じ条件）
+// ============================================
 function calculateScheduleScore(schedule, requestsData, staffList) {
     let score = 0;
     let fulfilled = 0;
     let unfulfilled = 0;
     
     const WEIGHTS = {
-        REQUEST_WEIGHT: 2,        // 休・日の希望充足 +2
-        WORK_FAIRNESS: 1,         // 勤務日数公平性 -1
-        NIGHT_FAIRNESS: 1,        // 夜勤回数公平性 -1
-        PATTERN_BONUS: 3          // 準準休夜夜休パターン +3
+        REQUEST_WEIGHT: 2,
+        WORK_FAIRNESS: 1,
+        NIGHT_FAIRNESS: 1,
+        PATTERN_BONUS: 3
     };
     
     const workCounts = [];
@@ -1242,19 +1382,17 @@ function calculateScheduleScore(schedule, requestsData, staffList) {
     
     staffList.forEach(function(staff) {
         if (staff.originalId === 31) return;
-        if (staff.originalId === 1 || staff.originalId === 2) return; // 管理者除外
-        if (staff.weekdayDayOnly) return; // 平日日勤専門除外
+        if (staff.originalId === 1 || staff.originalId === 2) return;
+        if (staff.weekdayDayOnly) return;
         
         const staffSchedule = schedule[staff.uid];
         if (!staffSchedule) return;
         
-        // 勤務日数カウント
         let workCount = 0;
         let nightCount = 0;
         
         Object.values(staffSchedule.shifts).forEach(function(shift) {
-            if (shift !== '休' && shift !== '年' && shift !== '出' && shift !== '特' && 
-                shift !== 'AM' && shift !== 'PM' && shift !== '夏') {
+            if (!['休', '年', '出', '特', 'AM', 'PM', '夏'].includes(shift)) {
                 workCount++;
             }
             if (shift === '準' || shift === '夜') {
@@ -1265,20 +1403,18 @@ function calculateScheduleScore(schedule, requestsData, staffList) {
         workCounts.push(workCount);
         nightCounts.push(nightCount);
         
-        // 希望チェック（休・日のみ）
+        // 希望チェック（休・日のみスコアに影響）
         const staffRequests = requestsData[staff.uid];
         if (staffRequests && staffRequests.dates) {
             Object.keys(staffRequests.dates).forEach(function(dateKey) {
                 const requestType = staffRequests.dates[dateKey];
                 
-                // 休・日の希望のみスコアに反映
                 if (requestType === '休' || requestType === '日') {
                     const day = dateKey.includes('-') ? parseInt(dateKey.split('-')[2]) : parseInt(dateKey);
                     const actualShift = staffSchedule.shifts[day] || staffSchedule.shifts[String(day)];
                     
                     if (requestType === '休') {
-                        if (actualShift === '休' || actualShift === '年' || actualShift === '出' || 
-                            actualShift === '特' || actualShift === 'AM' || actualShift === 'PM' || actualShift === '夏') {
+                        if (['休', '年', '出', '特', 'AM', 'PM', '夏'].includes(actualShift)) {
                             score += WEIGHTS.REQUEST_WEIGHT;
                             fulfilled++;
                         } else {
@@ -1289,7 +1425,10 @@ function calculateScheduleScore(schedule, requestsData, staffList) {
                             score += WEIGHTS.REQUEST_WEIGHT;
                             fulfilled++;
                         } else {
-                            unfulfilled++;
+                            // ★休み系なら未充足カウントしない
+                            if (!['休', '年', '出', '特', 'AM', 'PM', '夏'].includes(actualShift)) {
+                                unfulfilled++;
+                            }
                         }
                     }
                 }
@@ -1299,7 +1438,7 @@ function calculateScheduleScore(schedule, requestsData, staffList) {
     
     // 勤務日数公平性
     if (workCounts.length > 0) {
-        const avgWork = 20; // 平均勤務日数
+        const avgWork = 20;
         workCounts.forEach(function(wc) {
             score -= Math.abs(wc - avgWork) * WEIGHTS.WORK_FAIRNESS;
         });
@@ -1307,7 +1446,7 @@ function calculateScheduleScore(schedule, requestsData, staffList) {
     
     // 夜勤回数公平性
     if (nightCounts.length > 0) {
-        const avgNight = 6; // 平均夜勤回数
+        const avgNight = 6;
         nightCounts.forEach(function(nc) {
             score -= Math.abs(nc - avgNight) * WEIGHTS.NIGHT_FAIRNESS;
         });
