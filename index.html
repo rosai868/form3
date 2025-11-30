@@ -2732,6 +2732,58 @@ function updateSimpleProgressUI(percentage, message) {
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
 
+    function formatScoreBreakdown(draft) {
+    // score_breakdown がない場合
+    if (!draft || !draft.score_breakdown) {
+        if (draft && typeof draft.score !== 'undefined') {
+            let html = '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+            html += '<h4 style="margin-top: 0;">📊 スコア: ' + draft.score + '点</h4>';
+            html += '<p style="font-size: 0.9em; color: #666;">希望充足: ' + (draft.fulfilled_requests || '?') + '/' + (draft.total_requests || '?') + '件</p>';
+            html += '</div>';
+            return html;
+        }
+        return '';
+    }
+    
+    const breakdown = draft.score_breakdown;
+    let html = '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+    html += '<h4 style="margin-top: 0;">📊 スコア計算の内訳</h4>';
+    html += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
+    
+    // 希望充足スコア
+    html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">✅ 希望充足ボーナス</td>';
+    html += '<td style="padding: 8px; text-align: right; color: #4CAF50; font-weight: bold;">+' + (breakdown.request_score || 0) + '点</td></tr>';
+    
+    // 勤務日数ペナルティ
+    if (breakdown.work_fairness_penalty) {
+        html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">📉 勤務日数の偏り</td>';
+        html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.work_fairness_penalty + '点</td></tr>';
+    }
+    
+    // 夜勤回数ペナルティ
+    if (breakdown.night_fairness_penalty) {
+        html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">🌙 夜勤回数の偏り</td>';
+        html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.night_fairness_penalty + '点</td></tr>';
+    }
+    
+    // 合計
+    html += '<tr style="background: #e3f2fd;"><td style="padding: 10px; font-weight: bold;">合計スコア</td>';
+    html += '<td style="padding: 10px; text-align: right; font-weight: bold; font-size: 1.3em; color: #1976D2;">' + (draft.score || 0) + '点</td></tr>';
+    html += '</table>';
+    
+    // スコアの目安
+    html += '<div style="margin-top: 15px; padding: 10px; background: #fff; border-radius: 4px;">';
+    html += '<p style="margin: 0 0 8px 0; font-weight: bold; font-size: 13px;">📈 スコアの目安:</p>';
+    html += '<div style="font-size: 12px;">';
+    html += '<span style="color: #4CAF50;">■+100以上:非常に良い</span> ';
+    html += '<span style="color: #8BC34A;">■+50〜100:良い</span> ';
+    html += '<span style="color: #FFC107;">■+20〜50:普通</span> ';
+    html += '<span style="color: #F44336;">■マイナス:要改善</span>';
+    html += '</div></div></div>';
+    
+    return html;
+}
+    
     function displayScheduleResults(data, monthKey) {
     console.log("=== displayScheduleResults 開始 ===");
     console.log("受信データ:", data);
@@ -2784,6 +2836,10 @@ function updateSimpleProgressUI(percentage, message) {
     statusHtml += '</div>';
     
     resultsArea.innerHTML = statusHtml;
+
+        // ★★★ スコア内訳を追加 ★★★
+    const scoreBreakdownHtml = formatScoreBreakdown(draft);
+    resultsArea.innerHTML += scoreBreakdownHtml;
     
     if (!draft.schedule) {
         resultsArea.innerHTML += '<p style="color: red;">スケジュール詳細データがありません</p>';
