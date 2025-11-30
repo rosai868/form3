@@ -2831,11 +2831,54 @@ function updateSimpleProgressUI(percentage, message) {
     const attempts = draft.attempts || data.attempt || 1;
     
     let statusHtml = '<div style="background: #E8F5E9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">';
-    statusHtml += '<h4 style="color: #2E7D32;"><i class="fas fa-check-circle"></i> 作成完了' + (score ? ' (スコア: ' + score + ')' : '') + '</h4>';
-    statusHtml += '<p style="font-size: 13px; color: #555;">計算時間: ' + (execTime ? parseFloat(execTime).toFixed(2) : '?') + '秒 / 試行回数: ' + attempts + '</p>';
-    statusHtml += '</div>';
-    
-    resultsArea.innerHTML = statusHtml;
+statusHtml += '<h4 style="color: #2E7D32;"><i class="fas fa-check-circle"></i> 作成完了</h4>';
+statusHtml += '<p style="font-size: 13px; color: #555;">計算時間: ' + (execTime ? parseFloat(execTime).toFixed(2) : '?') + '秒 / 試行回数: ' + attempts + '</p>';
+statusHtml += '</div>';
+
+// ★★★ スコア内訳を表示 ★★★
+statusHtml += '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">';
+statusHtml += '<h4 style="margin-top: 0; color: #333;">📊 スコア計算の内訳</h4>';
+statusHtml += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
+
+const fulfilledReqs = draft.fulfilled_requests || 0;
+const totalReqs = draft.total_requests || 0;
+const requestScore = draft.score_breakdown ? draft.score_breakdown.request_score : (fulfilledReqs * 2);
+statusHtml += '<tr style="border-bottom: 1px solid #ddd;">';
+statusHtml += '<td style="padding: 8px;">✅ 希望充足ボーナス (' + fulfilledReqs + '件 × 2点)</td>';
+statusHtml += '<td style="padding: 8px; text-align: right; color: #4CAF50; font-weight: bold;">+' + requestScore + '点</td>';
+statusHtml += '</tr>';
+
+if (draft.score_breakdown && draft.score_breakdown.work_fairness_penalty) {
+    statusHtml += '<tr style="border-bottom: 1px solid #ddd;">';
+    statusHtml += '<td style="padding: 8px;">📉 勤務日数の偏りペナルティ</td>';
+    statusHtml += '<td style="padding: 8px; text-align: right; color: #F44336; font-weight: bold;">' + draft.score_breakdown.work_fairness_penalty + '点</td>';
+    statusHtml += '</tr>';
+}
+
+if (draft.score_breakdown && draft.score_breakdown.night_fairness_penalty) {
+    statusHtml += '<tr style="border-bottom: 1px solid #ddd;">';
+    statusHtml += '<td style="padding: 8px;">🌙 夜勤回数の偏りペナルティ</td>';
+    statusHtml += '<td style="padding: 8px; text-align: right; color: #F44336; font-weight: bold;">' + draft.score_breakdown.night_fairness_penalty + '点</td>';
+    statusHtml += '</tr>';
+}
+
+statusHtml += '<tr style="background: #e3f2fd;">';
+statusHtml += '<td style="padding: 10px; font-weight: bold;">合計スコア</td>';
+statusHtml += '<td style="padding: 10px; text-align: right; font-weight: bold; font-size: 1.3em; color: #1976D2;">' + (score || 0) + '点</td>';
+statusHtml += '</tr>';
+statusHtml += '</table>';
+
+statusHtml += '<div style="margin-top: 15px; padding: 10px; background: #fff; border-radius: 4px;">';
+statusHtml += '<p style="margin: 0 0 8px 0; font-weight: bold; font-size: 13px;">📈 スコアの目安:</p>';
+statusHtml += '<div style="font-size: 12px;">';
+statusHtml += '<span style="color: #4CAF50;">■+100以上:非常に良い</span> ';
+statusHtml += '<span style="color: #8BC34A;">■+50〜100:良い</span> ';
+statusHtml += '<span style="color: #FFC107;">■+20〜50:普通</span> ';
+statusHtml += '<span style="color: #F44336;">■マイナス:要改善</span>';
+statusHtml += '</div></div>';
+statusHtml += '</div>';
+
+resultsArea.innerHTML = statusHtml;
 
         // ★★★ スコア内訳を追加 ★★★
     const scoreBreakdownHtml = formatScoreBreakdown(draft);
