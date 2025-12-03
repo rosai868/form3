@@ -343,24 +343,38 @@ opacity: 0;
 /* 希望テーブルをコンパクトに */
 .admin-table {
 table-layout: fixed;
-font-size: 10px;
+font-size: 11px;
 }
 .admin-table th, .admin-table td {
-padding: 3px 2px;
-min-width: 18px;
-max-width: 26px;
+padding: 4px 2px;
+text-align: center;
 overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
 }
-.admin-table td:first-child { min-width: 22px; max-width: 28px; }
-.admin-table td:nth-child(2) { min-width: 28px; max-width: 32px; }
-.admin-table td:nth-child(3) { min-width: 45px; max-width: 55px; font-size: 9px; }
-.admin-table th:nth-child(n+4):not(:nth-last-child(-n+4)),
-.admin-table td:nth-child(n+4):not(:nth-last-child(-n+4)) {
-min-width: 16px; max-width: 22px; padding: 2px 1px;
+/* ID列 */
+.admin-table td:first-child { 
+width: 30px; 
+min-width: 30px;
 }
-.admin-table th:nth-last-child(-n+4),
-.admin-table td:nth-last-child(-n+4) {
-min-width: 20px; max-width: 26px; font-weight: bold; background: #F0F0F0;
+/* チーム列 */
+.admin-table td:nth-child(2) { 
+width: 35px; 
+min-width: 35px;
+}
+/* 名前列 - 広めに確保 */
+.admin-table td:nth-child(3) { 
+width: 70px; 
+min-width: 70px;
+text-align: left;
+padding-left: 5px;
+}
+/* 日付列 */
+.admin-table th:nth-child(n+4),
+.admin-table td:nth-child(n+4) {
+width: 24px;
+min-width: 24px;
+max-width: 28px;
 }
 </style>
 </head>
