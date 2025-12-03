@@ -2876,7 +2876,11 @@ const scoreBreakdown = data.score_breakdown || draft.score_breakdown || null;
 const finalScore = score || data.score || draft.score || 0;
 
 statusHtml += '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">';
-statusHtml += '<h4 style="margin-top: 0; color: #333;">📊 スコア計算の内訳<s * 2);
+statusHtml += '<h4 style="margin-top: 0; color: #333;">📊 スコア計算の内訳</h4>';
+statusHtml += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
+
+// 希望充足（REQUEST_WEIGHT = 2）
+const requestScore = scoreBreakdown ? scoreBreakdown.request_score : (fulfilledReqs * 2);
 statusHtml += '<tr style="border-bottom: 1px solid #ddd;">';
 statusHtml += '<td style="padding: 8px;">✅ 希望充足ボーナス (' + fulfilledReqs + '/' + totalReqs + '件 × 2点)</td>';
 statusHtml += '<td style="padding: 8px; text-align: right; color: #4CAF50; font-weight: bold;">+' + requestScore + '点</td>';
