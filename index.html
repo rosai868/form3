@@ -32,55 +32,64 @@ button:hover { background: #4DB6AC; }
 button:disabled { background: #cccccc; cursor: not-allowed; }
 .timer { background: #F8F8F8; border: 1px solid #F0EAE4; color: #777; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: right; font-size: 12px; }
 .timer-display { font-size: 14px; font-weight: 600; margin-top: 5px; color: #5D4037; }
-.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #F8F8F8; border-radius: 8px; }
-.calendar-header button { width: auto; padding: 8px 20px; background: #B0BEC5; }
-.calendar-header button:hover { background: #90A4AE; }
-#calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #E0E0E0; border: 1px solid #E0E0E0; border-radius: 8px; overflow: hidden; }
-.weekday-header { background: #00897B; color: white; padding: 10px 5px; text-align: center; font-weight: 600; font-size: 12px; }
-.weekday-header.sunday { background: #E57373; }
-.weekday-header.saturday { background: #64B5F6; }
-.calendar-day { background: white; height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; position: relative; user-select: none; transition: background 0.2s; border: 2px solid transparent; }
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, #00897B 0%, #4DB6AC 100%); border-radius: 16px; box-shadow: 0 4px 15px rgba(0, 137, 123, 0.3); }
+.calendar-header h2 { color: white; font-size: 22px; text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.calendar-header button { width: auto; padding: 10px 24px; background: rgba(255,255,255,0.9); color: #00897B; border-radius: 25px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.calendar-header button:hover { background: white; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+#calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: transparent; border: none; border-radius: 12px; padding: 10px; background: #F8F9FA; }
+.weekday-header { background: transparent; color: #5D4037; padding: 12px 5px; text-align: center; font-weight: 700; font-size: 13px; }
+.weekday-header.sunday { color: #E57373; }
+.weekday-header.saturday { color: #64B5F6; }
+.calendar-day { background: white; height: 75px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; cursor: pointer; position: relative; user-select: none; transition: all 0.2s ease; border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding-top: 8px; }
 .calendar-day.selected { box-sizing: border-box; }
-.calendar-day:hover:not(.disabled):not(.empty) { background: #E0F2F1; }
-.calendar-day.empty { background: #F4F7F6; cursor: default; border: none; }
-.calendar-day.sunday { background: #FFFBF7; }
-.calendar-day.saturday { background: #F4F7FF; }
-.calendar-day.holiday { background: #FFFBF7; }
-.calendar-day.disabled { background: #F5F5F5; color: #BDBDBD; cursor: not-allowed; }
-.calendar-day-number { font-size: 15px; font-weight: 600; position: absolute; top: 5px; left: 8px; color: #777; }
-.calendar-day-request { position: absolute; bottom: 5px; right: 5px; font-size: 11px; font-weight: 700; height: 22px; width: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.request-type-休 { color: #EF5350; background: #FFEBEE; border: 1px solid #FFCDD2; }
-.request-type-年 { color: #42A5F5; background: #E3F2FD; border: 1px solid #BBDEFB; }
-.request-type-出 { color: #FFA726; background: #FFF8E1; border: 1px solid #FFE0B2; }
-.request-type-日 { color: #66BB6A; background: #E8F5E9; border: 1px solid #C8E6C9; }
-.request-type-特 { color: #9575CD; background: #F3E5F5; border: 1px solid #B39DDB; }
-.request-type-AM { color: #03A9F4; background: #E1F5FE; border: 1px solid #81D4FA; }
-.request-type-PM { color: #3F51B5; background: #E8EAF6; border: 1px solid #9FA8DA; }
-.request-type-夏 { color: #FF9800; background: #FFF3E0; border: 1px solid #FFCC80; }
-.calendar-day.selected { border-color: #80CBC4; background-color: #F0FAF9; }
-.calendar-day.selected-休 { border-color: #EF5350; background-color: #FFEBEE; }
-.calendar-day.selected-年 { border-color: #42A5F5; background-color: #E3F2FD; }
-.calendar-day.selected-出 { border-color: #FFA726; background-color: #FFF8E1; }
-.calendar-day.selected-日 { border-color: #66BB6A; background-color: #E8F5E9; }
-.calendar-day.selected-特 { border-color: #9575CD; background-color: #F3E5F5; }
-.calendar-day.selected-AM { border-color: #03A9F4; background-color: #E1F5FE; }
-.calendar-day.selected-PM { border-color: #3F51B5; background-color: #E8EAF6; }
-.calendar-day.selected-夏 { border-color: #FF9800; background-color: #FFF3E0; }
-.request-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 20px 0; }
-.request-button { padding: 15px 10px; text-align: center; border: 2px solid #E0E0E0; border-radius: 8px; cursor: pointer; background: white; font-weight: 600; color: #5D4037; transition: all 0.2s; }
-.request-button:hover:not(.active) { background: #F8F8F8; border-color: #BDBDBD; }
-.request-button.active[data-type="休"] { background-color: #FFEBEE; border-color: #EF5350; color: #EF5350; }
-.request-button.active[data-type="年"] { background-color: #E3F2FD; border-color: #42A5F5; color: #42A5F5; }
-.request-button.active[data-type="出"] { background-color: #FFF8E1; border-color: #FFA726; color: #FFA726; }
-.request-button.active[data-type="日"] { background-color: #E8F5E9; border-color: #66BB6A; color: #66BB6A; }
-.request-button.active[data-type="特"] { background-color: #F3E5F5; border-color: #9575CD; color: #9575CD; }
-.request-button.active[data-type="AM"] { background-color: #E1F5FE; border-color: #03A9F4; color: #03A9F4; }
-.request-button.active[data-type="PM"] { background-color: #E8EAF6; border-color: #3F51B5; color: #3F51B5; }
-.request-button.active[data-type="夏"] { background-color: #FFF3E0; border-color: #FF9800; color: #FF9800; }
-.selected-dates { margin-top: 20px; padding: 15px; background: #F8F8F8; border-radius: 8px; border: 1px solid #F0EAE4; }
-.selected-date-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin: 5px 0; background: white; border-radius: 6px; border: 1px solid #E0E0E0; }
-.selected-date-item button { width: auto; padding: 5px 15px; background: #FFAB91; font-size: 12px; border-radius: 6px; }
-.selected-date-item button:hover { background: #FF8A65; }
+.calendar-day:hover:not(.disabled):not(.empty) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.calendar-day.empty { background: transparent; cursor: default; box-shadow: none; }
+.calendar-day.sunday { background: #FFF5F5; }
+.calendar-day.saturday { background: #F5F8FF; }
+.calendar-day.holiday { background: linear-gradient(135deg, #FFF5F5 0%, #FFE8E8 100%); }
+.calendar-day.disabled { background: #F5F5F5; color: #BDBDBD; cursor: not-allowed; box-shadow: none; }
+.calendar-day-number { font-size: 16px; font-weight: 700; position: relative; top: 0; left: 0; color: #333; }
+.calendar-day.sunday .calendar-day-number { color: #E57373; }
+.calendar-day.saturday .calendar-day-number { color: #64B5F6; }
+.calendar-day-request { position: absolute; bottom: 8px; font-size: 10px; font-weight: 700; height: 24px; min-width: 24px; padding: 0 6px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.request-type-休 { color: white; background: linear-gradient(135deg, #EF5350 0%, #E53935 100%); border: none; }
+.request-type-年 { color: white; background: linear-gradient(135deg, #42A5F5 0%, #1E88E5 100%); border: none; }
+.request-type-出 { color: white; background: linear-gradient(135deg, #FFA726 0%, #FB8C00 100%); border: none; }
+.request-type-日 { color: white; background: linear-gradient(135deg, #66BB6A 0%, #43A047 100%); border: none; }
+.request-type-特 { color: white; background: linear-gradient(135deg, #9575CD 0%, #7E57C2 100%); border: none; }
+.request-type-AM { color: white; background: linear-gradient(135deg, #29B6F6 0%, #039BE5 100%); border: none; }
+.request-type-PM { color: white; background: linear-gradient(135deg, #5C6BC0 0%, #3F51B5 100%); border: none; }
+.request-type-夏 { color: white; background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); border: none; }
+.calendar-day.selected { border: 2px solid #80CBC4; background-color: #E0F2F1; }
+.calendar-day.selected-休 { border: 2px solid #EF5350; background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%); }
+.calendar-day.selected-年 { border: 2px solid #42A5F5; background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); }
+.calendar-day.selected-出 { border: 2px solid #FFA726; background: linear-gradient(135deg, #FFF8E1 0%, #FFE0B2 100%); }
+.calendar-day.selected-日 { border: 2px solid #66BB6A; background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); }
+.calendar-day.selected-特 { border: 2px solid #9575CD; background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); }
+.calendar-day.selected-AM { border: 2px solid #29B6F6; background: linear-gradient(135deg, #E1F5FE 0%, #B3E5FC 100%); }
+.calendar-day.selected-PM { border: 2px solid #5C6BC0; background: linear-gradient(135deg, #E8EAF6 0%, #C5CAE9 100%); }
+.calendar-day.selected-夏 { border: 2px solid #FF9800; background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); }
+.request-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 25px 0; padding: 20px; background: #F8F9FA; border-radius: 16px; }
+.request-button { padding: 16px 8px; text-align: center; border: none; border-radius: 12px; cursor: pointer; background: white; font-weight: 600; color: #5D4037; transition: all 0.25s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.request-button:hover:not(.active) { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+.request-button .icon { font-size: 24px; }
+.request-button .label { font-size: 12px; line-height: 1.3; }
+.request-button.active { transform: scale(1.02); }
+.request-button.active[data-type="休"] { background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%); color: #C62828; box-shadow: 0 4px 15px rgba(239, 83, 80, 0.3); }
+.request-button.active[data-type="年"] { background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); color: #1565C0; box-shadow: 0 4px 15px rgba(66, 165, 245, 0.3); }
+.request-button.active[data-type="出"] { background: linear-gradient(135deg, #FFF8E1 0%, #FFE0B2 100%); color: #E65100; box-shadow: 0 4px 15px rgba(255, 167, 38, 0.3); }
+.request-button.active[data-type="日"] { background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); color: #2E7D32; box-shadow: 0 4px 15px rgba(102, 187, 106, 0.3); }
+.request-button.active[data-type="特"] { background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); color: #6A1B9A; box-shadow: 0 4px 15px rgba(149, 117, 205, 0.3); }
+.request-button.active[data-type="AM"] { background: linear-gradient(135deg, #E1F5FE 0%, #B3E5FC 100%); color: #0277BD; box-shadow: 0 4px 15px rgba(41, 182, 246, 0.3); }
+.request-button.active[data-type="PM"] { background: linear-gradient(135deg, #E8EAF6 0%, #C5CAE9 100%); color: #283593; box-shadow: 0 4px 15px rgba(92, 107, 192, 0.3); }
+.request-button.active[data-type="夏"] { background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); color: #E65100; box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3); }
+.selected-dates { margin-top: 25px; padding: 20px; background: white; border-radius: 16px; border: none; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.selected-dates h3 { color: #00897B; font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+.selected-dates h3::before { content: '📋'; }
+.selected-date-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin: 8px 0; background: #F8F9FA; border-radius: 10px; border: none; transition: all 0.2s ease; }
+.selected-date-item:hover { background: #F0F0F0; }
+.selected-date-item button { width: auto; padding: 6px 16px; background: linear-gradient(135deg, #FFAB91 0%, #FF8A65 100%); font-size: 12px; border-radius: 20px; box-shadow: 0 2px 6px rgba(255, 138, 101, 0.3); }
+.selected-date-item button:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(255, 138, 101, 0.4); }
 .error-message { color: #EF5350; margin-top: 10px; text-align: center; }
 .success-message { color: #66BB6A; margin-top: 10px; text-align: center; }
 .admin-table-container { overflow-x: auto; margin-top: 20px; border: 1px solid #E0E0E0; border-radius: 8px; }
@@ -421,46 +430,61 @@ max-width: 28px;
 </div>
 
 <div id="mainSection" class="container hidden">
-<h1>シフト希望入力</h1>
+<h1 style="background: linear-gradient(135deg, #00897B 0%, #4DB6AC 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 28px;">シフト希望入力</h1>
 <div id="welcomeMessage" style="text-align: center; margin-bottom: 20px;"></div>
 
-<div class="timer">
-<div>締切まで残り時間</div>
-<div id="countdown" class="timer-display">計算中...</div>
+<div class="timer" style="background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%); border: none; border-radius: 12px; padding: 16px 20px; box-shadow: 0 2px 10px rgba(255, 193, 7, 0.2);">
+<div style="display: flex; align-items: center; gap: 8px; color: #F57C00;"><i class="fas fa-clock"></i> 締切まで残り時間</div>
+<div id="countdown" class="timer-display" style="font-size: 18px; color: #E65100;">計算中...</div>
 </div>
 
 <div class="calendar-header">
-<button onclick="previousMonth()">前月</button>
+<button onclick="previousMonth()"><i class="fas fa-chevron-left"></i> 前月</button>
 <h2 id="currentMonth"></h2>
-<button onclick="nextMonth()">翌月</button>
+<button onclick="nextMonth()">翌月 <i class="fas fa-chevron-right"></i></button>
 </div>
 
 <div id="calendar"></div>
 
+<div style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); padding: 16px 20px; border-radius: 12px; margin: 20px 0; display: flex; align-items: center; gap: 12px;">
+<i class="fas fa-info-circle" style="font-size: 24px; color: #2E7D32;"></i>
+<div style="color: #1B5E20; font-size: 14px;">
+<strong>使い方:</strong> 下の希望種別を選択してから、カレンダーの日付をタップしてください
+</div>
+</div>
+
 <div class="request-buttons">
 <div class="request-button" onclick="setRequestType('休')" data-type="休">
-休み希望<br>（休）
+<span class="icon">🏠</span>
+<span class="label">休み希望</span>
 </div>
 <div class="request-button" onclick="setRequestType('年')" data-type="年">
-年休希望<br>（年）
+<span class="icon">🌴</span>
+<span class="label">年休希望</span>
 </div>
 <div class="request-button" onclick="setRequestType('出')" data-type="出">
-出張希望<br>（出）
+<span class="icon">✈️</span>
+<span class="label">出張</span>
 </div>
 <div class="request-button" onclick="setRequestType('日')" data-type="日">
-日勤希望<br>（日）
+<span class="icon">☀️</span>
+<span class="label">日勤希望</span>
 </div>
 <div class="request-button" onclick="setRequestType('特')" data-type="特">
-特休希望<br>（特）
+<span class="icon">⭐</span>
+<span class="label">特休希望</span>
 </div>
 <div class="request-button" onclick="setRequestType('AM')" data-type="AM">
-午前休希望<br>（AM）
+<span class="icon">🌅</span>
+<span class="label">午前休</span>
 </div>
 <div class="request-button" onclick="setRequestType('PM')" data-type="PM">
-午後休み希望<br>（PM）
+<span class="icon">🌇</span>
+<span class="label">午後休</span>
 </div>
 <div class="request-button" onclick="setRequestType('夏')" data-type="夏">
-夏休み希望<br>（夏）
+<span class="icon">🏖️</span>
+<span class="label">夏休み</span>
 </div>
 </div>
 
@@ -469,9 +493,11 @@ max-width: 28px;
 <div id="selectedDatesList"></div>
 </div>
 
-<button onclick="submitRequests()" id="submitButton">希望を提出</button>
+<button onclick="submitRequests()" id="submitButton" style="background: linear-gradient(135deg, #00897B 0%, #4DB6AC 100%); padding: 16px 32px; font-size: 16px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0, 137, 123, 0.4); margin-top: 20px;">
+<i class="fas fa-paper-plane" style="margin-right: 8px;"></i>希望を提出する
+</button>
 
-<div id="submissionStatus" class="selected-dates" style="margin-top: 15px;">
+<div id="submissionStatus" class="selected-dates" style="margin-top: 20px;">
 <h3>提出状況</h3>
 <div id="submissionStatusContent"></div>
 </div>
