@@ -355,35 +355,45 @@ table-layout: fixed;
 font-size: 11px;
 }
 .admin-table th, .admin-table td {
-padding: 4px 2px;
+padding: 3px 1px;
 text-align: center;
 overflow: hidden;
 text-overflow: ellipsis;
 white-space: nowrap;
 }
-/* ID列 */
-.admin-table td:first-child { 
-width: 30px; 
-min-width: 30px;
+/* ID列 - 最小限に */
+.admin-table td:first-child,
+.admin-table th:first-child { 
+width: 22px; 
+min-width: 22px;
+max-width: 22px;
+font-size: 10px;
 }
-/* チーム列 */
-.admin-table td:nth-child(2) { 
-width: 35px; 
-min-width: 35px;
+/* チーム列 - 最小限に */
+.admin-table td:nth-child(2),
+.admin-table th:nth-child(2) { 
+width: 22px; 
+min-width: 22px;
+max-width: 22px;
+font-size: 10px;
 }
-/* 名前列 - 広めに確保 */
-.admin-table td:nth-child(3) { 
-width: 70px; 
-min-width: 70px;
+/* 名前列 - コンパクトに */
+.admin-table td:nth-child(3),
+.admin-table th:nth-child(3) { 
+width: 50px; 
+min-width: 50px;
+max-width: 50px;
 text-align: left;
-padding-left: 5px;
+padding-left: 3px;
+font-size: 10px;
 }
 /* 日付列 */
 .admin-table th:nth-child(n+4),
 .admin-table td:nth-child(n+4) {
-width: 24px;
-min-width: 24px;
-max-width: 28px;
+width: 22px;
+min-width: 22px;
+max-width: 24px;
+font-size: 10px;
 }
 </style>
 </head>
@@ -3103,6 +3113,11 @@ showMessage('確定に失敗しました: ' + error.message, 'error');
 
 // CSVエクスポート機能
 function exportScheduleToCSV() {
+console.log('=== CSVエクスポート開始 ===');
+console.log('currentScheduleForCSV:', window.currentScheduleForCSV);
+console.log('currentStaffListForCSV:', window.currentStaffListForCSV);
+console.log('currentMonthKey:', window.currentMonthKey);
+
 if (!window.currentScheduleForCSV || !window.currentStaffListForCSV) {
 alert('エクスポートするスケジュールがありません。\n先に「保存済みを読み込む」でスケジュールを表示してください。');
 return;
@@ -3111,6 +3126,9 @@ return;
 const scheduleData = window.currentScheduleForCSV;
 const staffList = window.currentStaffListForCSV;
 const monthKey = window.currentMonthKey || new Date().toISOString().slice(0, 7);
+
+console.log('scheduleData keys:', Object.keys(scheduleData));
+console.log('staffList length:', staffList.length);
 
 const [year, month] = monthKey.split('-').map(Number);
 const daysInMonth = new Date(year, month, 0).getDate();
@@ -3129,7 +3147,10 @@ csv += ',,,\n';
 staffList.forEach(staff => {
 const uid = staff.uid || staff.id;
 const s = scheduleData[uid];
-if (!s || !s.shifts) return;
+if (!s || !s.shifts) {
+console.log('スキップ:', staff.name, uid, s);
+return;
+}
 
 csv += '"' + (staff.name || '').replace(/"/g, '""') + '",' + (staff.team || '-');
 const counts = { '日': 0, '準': 0, '夜': 0, '休': 0 };
@@ -3145,11 +3166,24 @@ else if (['休','年','出','特','AM','PM','夏'].includes(shift)) counts['休'
 csv += ',' + counts['日'] + ',' + counts['準'] + ',' + counts['夜'] + ',' + counts['休'] + '\n';
 });
 
+console.log('CSV作成完了, 長さ:', csv.length);
+
+try {
 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+const url = URL.createObjectURL(blob);
 const link = document.createElement('a');
-link.href = URL.createObjectURL(blob);
-link.download = '勤務表_' + monthKey + '.csv';
+link.setAttribute('href', url);
+link.setAttribute('download', '勤務表_' + monthKey + '.csv');
+link.style.visibility = 'hidden';
+document.body.appendChild(link);
 link.click();
+document.body.removeChild(link);
+URL.revokeObjectURL(url);
+console.log('CSVダウンロード実行完了');
+} catch (e) {
+console.error('CSVダウンロードエラー:', e);
+alert('CSVのダウンロードに失敗しました: ' + e.message);
+}
 }
 
 } catch (error) {
