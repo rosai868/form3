@@ -135,7 +135,7 @@ font-weight: 600;
 }
 .shift-日 { background: #E8F5E9; color: #388E3C; }
 .shift-準 { background: #E1F5FE; color: #0277BD; }
-.shift-夜 { background: #E8EAF6; color: #303F9F; }
+.shift-深 { background: #E8EAF6; color: #303F9F; }
 .shift-休, .shift-年, .shift-特, .shift-夏, .shift-AM, .shift-PM {
 background: #F5F5F5; color: #757575;
 }
@@ -751,7 +751,7 @@ table += '<th>チーム</th>';
 table += '<th style="background: #E8F5E9;">日勤</th>';
 table += '<th style="background: #E1F5FE;">準夜</th>';
 table += '<th style="background: #E8EAF6;">深夜</th>';
-table += '<th style="background: #FFF3E0;">準+夜<br>合計</th>';
+table += '<th style="background: #FFF3E0;">準+深<br>合計</th>';
 table += '<th style="background: #F5F5F5;">休み</th>';
 table += '<th style="background: #E3F2FD;">年休等</th>';
 table += '<th style="background: #FFEBEE;">合計</th>';
@@ -769,7 +769,7 @@ return s.originalId !== 31 && s.team === 'B';
 return (a.originalId || 0) - (b.originalId || 0);
 });
 
-let teamATotal = { 日: 0, 準: 0, 夜: 0, 休: 0, その他: 0 };
+let teamATotal = { 日: 0, 準: 0, 深: 0, 休: 0, その他: 0 };
 
 teamAStaff.forEach(function(staffMember) {
 const staffSchedule = schedule[staffMember.uid];
@@ -780,7 +780,7 @@ table += generatePersonalCountRow(staffMember, staffSchedule, teamATotal);
 
 table += generateSubtotalRow('チームA 小計', teamATotal, '#E3F2FD');
 
-let teamBTotal = { 日: 0, 準: 0, 夜: 0, 休: 0, その他: 0 };
+let teamBTotal = { 日: 0, 準: 0, 深: 0, 休: 0, その他: 0 };
 
 teamBStaff.forEach(function(staffMember) {
 const staffSchedule = schedule[staffMember.uid];
@@ -794,7 +794,7 @@ table += generateSubtotalRow('チームB 小計', teamBTotal, '#FFE0B2');
 let grandTotal = {
 日: teamATotal.日 + teamBTotal.日,
 準: teamATotal.準 + teamBTotal.準,
-夜: teamATotal.夜 + teamBTotal.夜,
+深: teamATotal.深 + teamBTotal.深,
 休: teamATotal.休 + teamBTotal.休,
 その他: teamATotal.その他 + teamBTotal.その他
 };
@@ -835,7 +835,7 @@ const total = dayCount + eveningCount + nightCount + restCount + otherCount;
 if (teamTotal) {
 teamTotal.日 += dayCount;
 teamTotal.準 += eveningCount;
-teamTotal.夜 += nightCount;
+teamTotal.深 += nightCount;
 teamTotal.休 += restCount;
 teamTotal.その他 += otherCount;
 }
@@ -856,8 +856,8 @@ return row;
 }
 
 function generateSubtotalRow(label, totals, bgColor, isBold) {
-const nightTotal = totals.準 + totals.夜;
-const grandTotal = totals.日 + totals.準 + totals.夜 + totals.休 + totals.その他;
+const nightTotal = totals.準 + totals.深;
+const grandTotal = totals.日 + totals.準 + totals.深 + totals.休 + totals.その他;
 
 const fontWeight = isBold ? 'font-weight: bold;' : '';
 
@@ -865,7 +865,7 @@ let row = '<tr>';
 row += '<td colspan="2" style="text-align: center; background: ' + bgColor + '; ' + fontWeight + '">' + label + '</td>';
 row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.日 + '</td>';
 row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.準 + '</td>';
-row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.夜 + '</td>';
+row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.深 + '</td>';
 row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + nightTotal + '</td>';
 row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.休 + '</td>';
 row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.その他 + '</td>';
@@ -885,7 +885,7 @@ for (let d = 1; d <= daysInMonth; d++) {
 dailyCounts[d] = {
 日: { A: 0, B: 0, total: 0 },
 準: { A: 0, B: 0, total: 0 },
-夜: { A: 0, B: 0, total: 0 }
+深: { A: 0, B: 0, total: 0 }
 };
 }
 
@@ -984,23 +984,23 @@ table += '<td style="background: ' + bgColor + '; font-weight: bold;">' + count 
 table += '</tr>';
 
 // 夜勤 A
-table += '<tr><td style="background: #E8EAF6; font-weight: bold;">夜勤 A</td>';
+table += '<tr><td style="background: #E8EAF6; font-weight: bold;">深夜 A</td>';
 for (let d = 1; d <= daysInMonth; d++) {
-table += '<td>' + dailyCounts[d].夜.A + '</td>';
+table += '<td>' + dailyCounts[d].深.A + '</td>';
 }
 table += '</tr>';
 
 // 夜勤 B
-table += '<tr><td style="background: #E8EAF6; font-weight: bold;">夜勤 B</td>';
+table += '<tr><td style="background: #E8EAF6; font-weight: bold;">深夜 B</td>';
 for (let d = 1; d <= daysInMonth; d++) {
-table += '<td>' + dailyCounts[d].夜.B + '</td>';
+table += '<td>' + dailyCounts[d].深.B + '</td>';
 }
 table += '</tr>';
 
 // 夜勤 計
-table += '<tr><td style="background: #9FA8DA; font-weight: bold;">夜勤 計</td>';
+table += '<tr><td style="background: #9FA8DA; font-weight: bold;">深夜 計</td>';
 for (let d = 1; d <= daysInMonth; d++) {
-const count = dailyCounts[d].夜.total;
+const count = dailyCounts[d].深.total;
 const bgColor = count === 3 ? '#C8E6C9' : (count < 3 ? '#FFCDD2' : '#FFE082');
 table += '<td style="background: ' + bgColor + '; font-weight: bold;">' + count + '</td>';
 }
@@ -1140,7 +1140,7 @@ style="padding: 12px; border: 2px solid #03A9F4; border-radius: 8px; background:
 <button class="shift-select-btn ${currentShift === '深' ? 'active' : ''}"
 onclick="directShiftChange('${staff.uid}', ${date}, '深')"
 style="padding: 12px; border: 2px solid #3F51B5; border-radius: 8px; background: ${currentShift === '深' ? '#E8EAF6' : 'white'}; color: #303F9F; font-weight: bold; cursor: pointer;">
-夜勤
+深夜
 </button>
 <button class="shift-select-btn ${currentShift === '休' ? 'active' : ''}"
 onclick="directShiftChange('${staff.uid}', ${date}, '休')"
