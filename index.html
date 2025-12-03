@@ -750,7 +750,7 @@ table += '<th>職員名</th>';
 table += '<th>チーム</th>';
 table += '<th style="background: #E8F5E9;">日勤</th>';
 table += '<th style="background: #E1F5FE;">準夜</th>';
-table += '<th style="background: #E8EAF6;">夜勤</th>';
+table += '<th style="background: #E8EAF6;">深夜</th>';
 table += '<th style="background: #FFF3E0;">準+夜<br>合計</th>';
 table += '<th style="background: #F5F5F5;">休み</th>';
 table += '<th style="background: #E3F2FD;">年休等</th>';
@@ -819,7 +819,7 @@ row += '<td style="color: ' + teamColor + '; font-weight: bold;">' + staffMember
 
 const dayCount = staffSchedule.counts['日'] || 0;
 const eveningCount = staffSchedule.counts['準'] || 0;
-const nightCount = staffSchedule.counts['夜'] || 0;
+const nightCount = staffSchedule.counts['深'] || 0;
 const nightTotal = eveningCount + nightCount;
 const restCount = staffSchedule.counts['休'] || 0;
 
@@ -902,7 +902,7 @@ const team = staffMember.team;
 for (let d = 1; d <= daysInMonth; d++) {
 const shift = staffSchedule.shifts[d] || staffSchedule.shifts[String(d)];
 
-if (shift === '日' || shift === '準' || shift === '夜') {
+if (shift === '日' || shift === '準' || shift === '深') {
 if (team === 'A' || team === 'B') {
 dailyCounts[d][shift][team]++;
 dailyCounts[d][shift].total++;
@@ -1137,9 +1137,9 @@ onclick="directShiftChange('${staff.uid}', ${date}, '準')"
 style="padding: 12px; border: 2px solid #03A9F4; border-radius: 8px; background: ${currentShift === '準' ? '#E1F5FE' : 'white'}; color: #0277BD; font-weight: bold; cursor: pointer;">
 準夜
 </button>
-<button class="shift-select-btn ${currentShift === '夜' ? 'active' : ''}"
-onclick="directShiftChange('${staff.uid}', ${date}, '夜')"
-style="padding: 12px; border: 2px solid #3F51B5; border-radius: 8px; background: ${currentShift === '夜' ? '#E8EAF6' : 'white'}; color: #303F9F; font-weight: bold; cursor: pointer;">
+<button class="shift-select-btn ${currentShift === '深' ? 'active' : ''}"
+onclick="directShiftChange('${staff.uid}', ${date}, '深')"
+style="padding: 12px; border: 2px solid #3F51B5; border-radius: 8px; background: ${currentShift === '深' ? '#E8EAF6' : 'white'}; color: #303F9F; font-weight: bold; cursor: pointer;">
 夜勤
 </button>
 <button class="shift-select-btn ${currentShift === '休' ? 'active' : ''}"
@@ -1312,21 +1312,21 @@ if (shiftB && shiftB !== '休') {
 result.canExchange = true;
 
 const staffANightCount = currentEditingSchedule[staffA.uid].counts['準'] +
-currentEditingSchedule[staffA.uid].counts['夜'];
+currentEditingSchedule[staffA.uid].counts['深'];
 const staffBNightCount = currentEditingSchedule[staffB.uid].counts['準'] +
-currentEditingSchedule[staffB.uid].counts['夜'];
+currentEditingSchedule[staffB.uid].counts['深'];
 
-const shiftAIsNight = (shiftA === '準' || shiftA === '夜');
-const shiftBIsNight = (shiftB === '準' || shiftB === '夜');
+const shiftAIsNight = (shiftA === '準' || shiftA === '深');
+const shiftBIsNight = (shiftB === '準' || shiftB === '深');
 
 if (shiftAIsNight && !shiftBIsNight && staffBNightCount >= 8) {
 result.canExchange = false;
-result.warning = "夜勤回数上限超過";
+result.warning = "深夜回数上限超過";
 }
 
 if (!shiftAIsNight && shiftBIsNight && staffANightCount >= 8) {
 result.canExchange = false;
-result.warning = "夜勤回数上限超過";
+result.warning = "深夜回数上限超過";
 }
 }
 
@@ -1467,7 +1467,7 @@ Object.values(staffSchedule.shifts).forEach(function(shift) {
 if (!['休', '年', '出', '特', 'AM', 'PM', '夏'].includes(shift)) {
 workCount++;
 }
-if (shift === '準' || shift === '夜') {
+if (shift === '準' || shift === '深') {
 nightCount++;
 }
 });
@@ -1516,7 +1516,7 @@ score -= Math.abs(wc - avgWork) * WEIGHTS.WORK_FAIRNESS;
 });
 }
 
-// 夜勤回数公平性
+// 深夜回数公平性
 if (nightCounts.length > 0) {
 const avgNight = 6;
 nightCounts.forEach(function(nc) {
@@ -2831,9 +2831,9 @@ html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">�
 html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.work_fairness_penalty + '点</td></tr>';
 }
 
-// 夜勤回数ペナルティ
+// 深夜回数ペナルティ
 if (breakdown.night_fairness_penalty) {
-html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">🌙 夜勤回数の偏り</td>';
+html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">🌙 深夜回数の偏り</td>';
 html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.night_fairness_penalty + '点</td></tr>';
 }
 
@@ -2944,10 +2944,10 @@ statusHtml += '<td style="padding: 8px; text-align: right; color: #F44336; font-
 statusHtml += '</tr>';
 }
 
-// 夜勤回数ペナルティ
+// 深夜回数ペナルティ
 if (scoreBreakdown && scoreBreakdown.night_fairness_penalty !== 0) {
 statusHtml += '<tr style="border-bottom: 1px solid #ddd;">';
-statusHtml += '<td style="padding: 8px;">🌙 夜勤回数の偏りペナルティ</td>';
+statusHtml += '<td style="padding: 8px;">🌙 深夜回数の偏りペナルティ</td>';
 statusHtml += '<td style="padding: 8px; text-align: right; color: #F44336; font-weight: bold;">' + scoreBreakdown.night_fairness_penalty + '点</td>';
 statusHtml += '</tr>';
 }
@@ -2978,7 +2978,7 @@ statusHtml += '<summary style="cursor: pointer; font-size: 12px; color: #666;">�
 statusHtml += '<div style="margin-top: 8px; padding: 10px; background: #fff; border-radius: 4px; font-size: 12px; color: #555;">';
 statusHtml += '<p style="margin: 5px 0;"><strong>希望充足:</strong> 叶った希望数 × 2点</p>';
 statusHtml += '<p style="margin: 5px 0;"><strong>勤務日数ペナルティ:</strong> |実際の勤務日数 - 20日| × 1点（各スタッフごと）</p>';
-statusHtml += '<p style="margin: 5px 0;"><strong>夜勤回数ペナルティ:</strong> |実際の夜勤回数 - 6回| × 1点（各スタッフごと）</p>';
+statusHtml += '<p style="margin: 5px 0;"><strong>深夜回数ペナルティ:</strong> |実際の深夜回数 - 6回| × 1点（各スタッフごと）</p>';
 statusHtml += '<p style="margin: 5px 0;"><strong>日勤専従者の希望:</strong> 叶った希望 × 50点（通常より高優先）</p>';
 statusHtml += '</div>';
 statusHtml += '</details>';
@@ -3136,7 +3136,7 @@ const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
 let csv = '\uFEFF名前,チーム';
 for (let d = 1; d <= daysInMonth; d++) csv += ',' + d;
-csv += ',日勤,準夜,夜勤,休み\n';
+csv += ',日勤,準夜,深夜,休み\n';
 
 csv += '曜日,';
 for (let d = 1; d <= daysInMonth; d++) {
@@ -3153,17 +3153,17 @@ return;
 }
 
 csv += '"' + (staff.name || '').replace(/"/g, '""') + '",' + (staff.team || '-');
-const counts = { '日': 0, '準': 0, '夜': 0, '休': 0 };
+const counts = { '日': 0, '準': 0, '深': 0, '休': 0 };
 
 for (let d = 1; d <= daysInMonth; d++) {
 const shift = s.shifts[d] || s.shifts[String(d)] || '-';
 csv += ',' + shift;
 if (shift === '日') counts['日']++;
 else if (shift === '準') counts['準']++;
-else if (shift === '夜') counts['夜']++;
+else if (shift === '深') counts['深']++;
 else if (['休','年','出','特','AM','PM','夏'].includes(shift)) counts['休']++;
 }
-csv += ',' + counts['日'] + ',' + counts['準'] + ',' + counts['夜'] + ',' + counts['休'] + '\n';
+csv += ',' + counts['日'] + ',' + counts['準'] + ',' + counts['深'] + ',' + counts['休'] + '\n';
 });
 
 console.log('CSV作成完了, 長さ:', csv.length);
