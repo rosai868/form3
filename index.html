@@ -561,28 +561,45 @@ font-size: 10px;
 <h4 style="margin: 0; color: #333; font-size: 14px;">
 <i class="fas fa-sliders-h"></i> 制約設定
 </h4>
-<button onclick="toggleConstraintPanel()" id="constraint-toggle-btn" style="background: #757575; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+<button id="constraint-toggle-btn" style="background: #757575; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
 <i class="fas fa-chevron-down"></i> 詳細を表示
 </button>
 </div>
 
 <div id="constraint-details" style="display: none;">
 <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
-解が見つからない場合は、優先度の低い制約のチェックを外して再実行してください。
+解が見つからない場合は、制約のチェックを外して再実行してください。
 </p>
 
-<!-- 必須制約（変更不可） -->
-<div style="background: #E3F2FD; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-<strong style="font-size: 12px; color: #1565C0;">📌 必須制約（常に適用）</strong>
-<div style="font-size: 11px; color: #555; margin-top: 5px; line-height: 1.6;">
-・準+深は7〜8回/月<br>
-・平日日勤: 12人（A6人・B6人、各チームリーダー1人以上）<br>
-・休日日勤: 5人（A2-3人・B2-3人、各チームリーダー1人以上）<br>
-・準夜・深夜: 各3人（A1-2人・B1-2人、リーダー1人以上）
+<!-- 人数・回数制約（重要） -->
+<div style="background: #FFF3E0; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+<strong style="font-size: 12px; color: #E65100;">⚠️ 人数・回数制約（外すと勤務表として不完全になる可能性）</strong>
+<div style="display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 11px; margin-top: 8px;">
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-night-count" checked>
+<span>準+深は7〜8回/月</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-staff-count" checked>
+<span>日勤・準夜・深夜の人数配置</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-team-balance" checked>
+<span>チームバランス（A/B人数）</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-leader-required" checked>
+<span>リーダー必須配置</span>
+</label>
+
 </div>
 </div>
 
-<!-- 選択可能な制約 -->
+<!-- シフトパターン制約 -->
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
 
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
@@ -628,10 +645,10 @@ font-size: 10px;
 </div>
 
 <div style="margin-top: 10px; text-align: right;">
-<button onclick="resetConstraints()" style="background: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 5px;">
+<button id="reset-constraints-btn" style="background: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 5px;">
 <i class="fas fa-undo"></i> 全てオン
 </button>
-<button onclick="relaxConstraints()" style="background: #FF9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+<button id="relax-constraints-btn" style="background: #FF9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">
 <i class="fas fa-bolt"></i> 緩和モード
 </button>
 </div>
@@ -702,6 +719,12 @@ function toggleConstraintPanel() {
 }
 
 function resetConstraints() {
+    // 人数・回数制約
+    document.getElementById('constraint-night-count').checked = true;
+    document.getElementById('constraint-staff-count').checked = true;
+    document.getElementById('constraint-team-balance').checked = true;
+    document.getElementById('constraint-leader-required').checked = true;
+    // シフトパターン制約
     document.getElementById('constraint-jun-kyuu-shin').checked = true;
     document.getElementById('constraint-kyuu-kyuu-shin').checked = true;
     document.getElementById('constraint-day-4-consecutive').checked = true;
@@ -713,6 +736,12 @@ function resetConstraints() {
 }
 
 function relaxConstraints() {
+    // 人数・回数制約は維持
+    document.getElementById('constraint-night-count').checked = true;
+    document.getElementById('constraint-staff-count').checked = true;
+    document.getElementById('constraint-team-balance').checked = false;  // オフ
+    document.getElementById('constraint-leader-required').checked = false;  // オフ
+    // シフトパターン制約
     document.getElementById('constraint-jun-kyuu-shin').checked = true;
     document.getElementById('constraint-kyuu-kyuu-shin').checked = true;
     document.getElementById('constraint-day-4-consecutive').checked = true;
@@ -721,11 +750,17 @@ function relaxConstraints() {
     document.getElementById('constraint-jun-to-shin').checked = false;
     document.getElementById('constraint-day-to-shin').checked = false;
     document.getElementById('constraint-pattern-bonus').checked = false;
-    alert('緩和モードに設定しました。深夜間隔・シフト遷移制約をオフにしました。');
+    alert('緩和モードに設定しました。チームバランス・リーダー必須・深夜間隔等をオフにしました。');
 }
 
 function getConstraintSettings() {
     return {
+        // 人数・回数制約
+        nightCount: document.getElementById('constraint-night-count')?.checked ?? true,
+        staffCount: document.getElementById('constraint-staff-count')?.checked ?? true,
+        teamBalance: document.getElementById('constraint-team-balance')?.checked ?? true,
+        leaderRequired: document.getElementById('constraint-leader-required')?.checked ?? true,
+        // シフトパターン制約
         junKyuuShin: document.getElementById('constraint-jun-kyuu-shin')?.checked ?? true,
         kyuuKyuuShin: document.getElementById('constraint-kyuu-kyuu-shin')?.checked ?? true,
         day4Consecutive: document.getElementById('constraint-day-4-consecutive')?.checked ?? true,
@@ -2645,6 +2680,22 @@ closeSwapModal();
 
 console.log('システム初期化完了');
 
+// ★★★ 制約設定ボタンのイベントリスナー ★★★
+const constraintToggleBtn = document.getElementById('constraint-toggle-btn');
+if (constraintToggleBtn) {
+    constraintToggleBtn.addEventListener('click', toggleConstraintPanel);
+}
+
+const resetConstraintsBtn = document.getElementById('reset-constraints-btn');
+if (resetConstraintsBtn) {
+    resetConstraintsBtn.addEventListener('click', resetConstraints);
+}
+
+const relaxConstraintsBtn = document.getElementById('relax-constraints-btn');
+if (relaxConstraintsBtn) {
+    relaxConstraintsBtn.addEventListener('click', relaxConstraints);
+}
+
 // ============================================
 // GAS呼び出しと結果表示
 // ============================================
@@ -2793,6 +2844,12 @@ try {
 // 制約設定を取得
 const constraints = getConstraintSettings();
 const constraintParams = 
+// 人数・回数制約
+'&c_nightCount=' + (constraints.nightCount ? '1' : '0') +
+'&c_staffCount=' + (constraints.staffCount ? '1' : '0') +
+'&c_teamBalance=' + (constraints.teamBalance ? '1' : '0') +
+'&c_leaderRequired=' + (constraints.leaderRequired ? '1' : '0') +
+// シフトパターン制約
 '&c_junKyuuShin=' + (constraints.junKyuuShin ? '1' : '0') +
 '&c_kyuuKyuuShin=' + (constraints.kyuuKyuuShin ? '1' : '0') +
 '&c_day4Consecutive=' + (constraints.day4Consecutive ? '1' : '0') +
