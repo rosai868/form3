@@ -555,6 +555,89 @@ font-size: 10px;
 <strong style="color: #2E7D32;">※ ブラウザを閉じても、結果は保存されます。</strong>
 </p>
 
+<!-- ★★★ 制約設定パネル ★★★ -->
+<div id="constraint-settings" style="background: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+<h4 style="margin: 0; color: #333; font-size: 14px;">
+<i class="fas fa-sliders-h"></i> 制約設定
+</h4>
+<button onclick="toggleConstraintPanel()" id="constraint-toggle-btn" style="background: #757575; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+<i class="fas fa-chevron-down"></i> 詳細を表示
+</button>
+</div>
+
+<div id="constraint-details" style="display: none;">
+<p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+解が見つからない場合は、優先度の低い制約のチェックを外して再実行してください。
+</p>
+
+<!-- 必須制約（変更不可） -->
+<div style="background: #E3F2FD; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+<strong style="font-size: 12px; color: #1565C0;">📌 必須制約（常に適用）</strong>
+<div style="font-size: 11px; color: #555; margin-top: 5px; line-height: 1.6;">
+・準+深は7〜8回/月<br>
+・平日日勤: 12人（A6人・B6人、各チームリーダー1人以上）<br>
+・休日日勤: 5人（A2-3人・B2-3人、各チームリーダー1人以上）<br>
+・準夜・深夜: 各3人（A1-2人・B1-2人、リーダー1人以上）
+</div>
+</div>
+
+<!-- 選択可能な制約 -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-jun-kyuu-shin" checked>
+<span>準休深・深休準の禁止</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-kyuu-kyuu-shin" checked>
+<span>休休深の禁止</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-day-4-consecutive" checked>
+<span>日勤は4連続まで</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-night-interval" checked>
+<span>深夜間隔5日以上</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-jun-before-rest" checked>
+<span>準夜前の休みは1つまで</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-jun-to-shin" checked>
+<span>準夜→深夜の禁止</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-day-to-shin" checked>
+<span>日勤→深夜の禁止</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
+<input type="checkbox" id="constraint-pattern-bonus" checked>
+<span>準準休深深休パターン推奨</span>
+</label>
+
+</div>
+
+<div style="margin-top: 10px; text-align: right;">
+<button onclick="resetConstraints()" style="background: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 5px;">
+<i class="fas fa-undo"></i> 全てオン
+</button>
+<button onclick="relaxConstraints()" style="background: #FF9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+<i class="fas fa-bolt"></i> 緩和モード
+</button>
+</div>
+</div>
+</div>
+
 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
 <button id="generate-schedule-btn" style="background: #00897B; flex: 1;">
 <i class="fas fa-magic"></i> 新規作成
@@ -2637,6 +2720,57 @@ loadBtn.innerHTML = '<i class="fas fa-folder-open"></i> 保存済みを読み込
 });
 }
 
+// ★★★ 制約設定関連の関数 ★★★
+function toggleConstraintPanel() {
+const details = document.getElementById('constraint-details');
+const btn = document.getElementById('constraint-toggle-btn');
+if (details.style.display === 'none') {
+details.style.display = 'block';
+btn.innerHTML = '<i class="fas fa-chevron-up"></i> 詳細を隠す';
+} else {
+details.style.display = 'none';
+btn.innerHTML = '<i class="fas fa-chevron-down"></i> 詳細を表示';
+}
+}
+
+function resetConstraints() {
+// 全てのチェックボックスをオンに
+document.getElementById('constraint-jun-kyuu-shin').checked = true;
+document.getElementById('constraint-kyuu-kyuu-shin').checked = true;
+document.getElementById('constraint-day-4-consecutive').checked = true;
+document.getElementById('constraint-night-interval').checked = true;
+document.getElementById('constraint-jun-before-rest').checked = true;
+document.getElementById('constraint-jun-to-shin').checked = true;
+document.getElementById('constraint-day-to-shin').checked = true;
+document.getElementById('constraint-pattern-bonus').checked = true;
+}
+
+function relaxConstraints() {
+// 緩和モード: 優先度の低い制約をオフに
+document.getElementById('constraint-jun-kyuu-shin').checked = true;  // 維持
+document.getElementById('constraint-kyuu-kyuu-shin').checked = true; // 維持
+document.getElementById('constraint-day-4-consecutive').checked = true; // 維持
+document.getElementById('constraint-night-interval').checked = false; // オフ
+document.getElementById('constraint-jun-before-rest').checked = false; // オフ
+document.getElementById('constraint-jun-to-shin').checked = false; // オフ
+document.getElementById('constraint-day-to-shin').checked = false; // オフ
+document.getElementById('constraint-pattern-bonus').checked = false; // オフ
+alert('緩和モードに設定しました。深夜間隔・シフト遷移制約をオフにしました。');
+}
+
+function getConstraintSettings() {
+return {
+junKyuuShin: document.getElementById('constraint-jun-kyuu-shin').checked,
+kyuuKyuuShin: document.getElementById('constraint-kyuu-kyuu-shin').checked,
+day4Consecutive: document.getElementById('constraint-day-4-consecutive').checked,
+nightInterval: document.getElementById('constraint-night-interval').checked,
+junBeforeRest: document.getElementById('constraint-jun-before-rest').checked,
+junToShin: document.getElementById('constraint-jun-to-shin').checked,
+dayToShin: document.getElementById('constraint-day-to-shin').checked,
+patternBonus: document.getElementById('constraint-pattern-bonus').checked
+};
+}
+
 generateBtn.addEventListener('click', async function() {
 const year = currentMonth.getFullYear();
 const month = currentMonth.getMonth() + 1;
@@ -2651,8 +2785,21 @@ generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ジョブを登�
 resultsArea.innerHTML = '<p style="color: #00897B;">処理を開始しています...</p>';
 
 try {
-const createUrl = GAS_API_URL + '?action=create&month=' + monthKey + '&v=' + new Date().getTime();
+// 制約設定を取得
+const constraints = getConstraintSettings();
+const constraintParams = 
+'&c_junKyuuShin=' + (constraints.junKyuuShin ? '1' : '0') +
+'&c_kyuuKyuuShin=' + (constraints.kyuuKyuuShin ? '1' : '0') +
+'&c_day4Consecutive=' + (constraints.day4Consecutive ? '1' : '0') +
+'&c_nightInterval=' + (constraints.nightInterval ? '1' : '0') +
+'&c_junBeforeRest=' + (constraints.junBeforeRest ? '1' : '0') +
+'&c_junToShin=' + (constraints.junToShin ? '1' : '0') +
+'&c_dayToShin=' + (constraints.dayToShin ? '1' : '0') +
+'&c_patternBonus=' + (constraints.patternBonus ? '1' : '0');
+
+const createUrl = GAS_API_URL + '?action=create&month=' + monthKey + constraintParams + '&v=' + new Date().getTime();
 console.log("ジョブ登録URL:", createUrl);
+console.log("制約設定:", constraints);
 
 const createResult = await callGASWithJSONP(createUrl);
 console.log("ジョブ登録結果:", createResult);
