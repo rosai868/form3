@@ -682,6 +682,62 @@ font-size: 10px;
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ============================================
+// ★★★ 制約設定関連の関数（グローバルスコープ） ★★★
+// ============================================
+
+function toggleConstraintPanel() {
+    const details = document.getElementById('constraint-details');
+    const btn = document.getElementById('constraint-toggle-btn');
+    if (!details || !btn) {
+        console.error('制約パネルの要素が見つかりません');
+        return;
+    }
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        btn.innerHTML = '<i class="fas fa-chevron-up"></i> 詳細を隠す';
+    } else {
+        details.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-chevron-down"></i> 詳細を表示';
+    }
+}
+
+function resetConstraints() {
+    document.getElementById('constraint-jun-kyuu-shin').checked = true;
+    document.getElementById('constraint-kyuu-kyuu-shin').checked = true;
+    document.getElementById('constraint-day-4-consecutive').checked = true;
+    document.getElementById('constraint-night-interval').checked = true;
+    document.getElementById('constraint-jun-before-rest').checked = true;
+    document.getElementById('constraint-jun-to-shin').checked = true;
+    document.getElementById('constraint-day-to-shin').checked = true;
+    document.getElementById('constraint-pattern-bonus').checked = true;
+}
+
+function relaxConstraints() {
+    document.getElementById('constraint-jun-kyuu-shin').checked = true;
+    document.getElementById('constraint-kyuu-kyuu-shin').checked = true;
+    document.getElementById('constraint-day-4-consecutive').checked = true;
+    document.getElementById('constraint-night-interval').checked = false;
+    document.getElementById('constraint-jun-before-rest').checked = false;
+    document.getElementById('constraint-jun-to-shin').checked = false;
+    document.getElementById('constraint-day-to-shin').checked = false;
+    document.getElementById('constraint-pattern-bonus').checked = false;
+    alert('緩和モードに設定しました。深夜間隔・シフト遷移制約をオフにしました。');
+}
+
+function getConstraintSettings() {
+    return {
+        junKyuuShin: document.getElementById('constraint-jun-kyuu-shin')?.checked ?? true,
+        kyuuKyuuShin: document.getElementById('constraint-kyuu-kyuu-shin')?.checked ?? true,
+        day4Consecutive: document.getElementById('constraint-day-4-consecutive')?.checked ?? true,
+        nightInterval: document.getElementById('constraint-night-interval')?.checked ?? true,
+        junBeforeRest: document.getElementById('constraint-jun-before-rest')?.checked ?? true,
+        junToShin: document.getElementById('constraint-jun-to-shin')?.checked ?? true,
+        dayToShin: document.getElementById('constraint-day-to-shin')?.checked ?? true,
+        patternBonus: document.getElementById('constraint-pattern-bonus')?.checked ?? true
+    };
+}
+
+// ============================================
 // Firebaseの設定
 // ============================================
 
@@ -2718,57 +2774,6 @@ loadBtn.disabled = false;
 loadBtn.innerHTML = '<i class="fas fa-folder-open"></i> 保存済みを読み込む';
 }
 });
-}
-
-// ★★★ 制約設定関連の関数 ★★★
-function toggleConstraintPanel() {
-const details = document.getElementById('constraint-details');
-const btn = document.getElementById('constraint-toggle-btn');
-if (details.style.display === 'none') {
-details.style.display = 'block';
-btn.innerHTML = '<i class="fas fa-chevron-up"></i> 詳細を隠す';
-} else {
-details.style.display = 'none';
-btn.innerHTML = '<i class="fas fa-chevron-down"></i> 詳細を表示';
-}
-}
-
-function resetConstraints() {
-// 全てのチェックボックスをオンに
-document.getElementById('constraint-jun-kyuu-shin').checked = true;
-document.getElementById('constraint-kyuu-kyuu-shin').checked = true;
-document.getElementById('constraint-day-4-consecutive').checked = true;
-document.getElementById('constraint-night-interval').checked = true;
-document.getElementById('constraint-jun-before-rest').checked = true;
-document.getElementById('constraint-jun-to-shin').checked = true;
-document.getElementById('constraint-day-to-shin').checked = true;
-document.getElementById('constraint-pattern-bonus').checked = true;
-}
-
-function relaxConstraints() {
-// 緩和モード: 優先度の低い制約をオフに
-document.getElementById('constraint-jun-kyuu-shin').checked = true;  // 維持
-document.getElementById('constraint-kyuu-kyuu-shin').checked = true; // 維持
-document.getElementById('constraint-day-4-consecutive').checked = true; // 維持
-document.getElementById('constraint-night-interval').checked = false; // オフ
-document.getElementById('constraint-jun-before-rest').checked = false; // オフ
-document.getElementById('constraint-jun-to-shin').checked = false; // オフ
-document.getElementById('constraint-day-to-shin').checked = false; // オフ
-document.getElementById('constraint-pattern-bonus').checked = false; // オフ
-alert('緩和モードに設定しました。深夜間隔・シフト遷移制約をオフにしました。');
-}
-
-function getConstraintSettings() {
-return {
-junKyuuShin: document.getElementById('constraint-jun-kyuu-shin').checked,
-kyuuKyuuShin: document.getElementById('constraint-kyuu-kyuu-shin').checked,
-day4Consecutive: document.getElementById('constraint-day-4-consecutive').checked,
-nightInterval: document.getElementById('constraint-night-interval').checked,
-junBeforeRest: document.getElementById('constraint-jun-before-rest').checked,
-junToShin: document.getElementById('constraint-jun-to-shin').checked,
-dayToShin: document.getElementById('constraint-day-to-shin').checked,
-patternBonus: document.getElementById('constraint-pattern-bonus').checked
-};
 }
 
 generateBtn.addEventListener('click', async function() {
