@@ -1058,6 +1058,17 @@ function generateCountTable(schedule, staff, daysInMonth) {
 const year = currentMonth.getFullYear();
 const month = currentMonth.getMonth() + 1;
 
+// ★★★ デバッグ: データ形式を確認 ★★★
+console.log("=== generateCountTable デバッグ ===");
+console.log("staff数:", staff.length);
+console.log("schedule keys:", Object.keys(schedule).slice(0, 3));
+if (staff.length > 0 && schedule[staff[0].uid]) {
+  console.log("最初のスタッフUID:", staff[0].uid);
+  console.log("最初のスタッフのschedule:", schedule[staff[0].uid]);
+  console.log("shifts:", schedule[staff[0].uid].shifts);
+  console.log("shifts keys:", Object.keys(schedule[staff[0].uid].shifts || {}).slice(0, 5));
+}
+
 const dailyCounts = {};
 
 for (let d = 1; d <= daysInMonth; d++) {
