@@ -1228,7 +1228,12 @@ console.log("スケジュールの月を設定:", currentScheduleData.monthKey);
 
 currentEditingDraft = draftKey;
 const draft = currentScheduleData.drafts[draftKey];
-currentEditingSchedule = JSON.parse(JSON.stringify(draft.schedule));
+// ★★★ 修正: schedule.scheduleの二重構造に対応 ★★★
+let scheduleToEdit = draft.schedule;
+if (draft.schedule && draft.schedule.schedule) {
+  scheduleToEdit = draft.schedule.schedule;
+}
+currentEditingSchedule = JSON.parse(JSON.stringify(scheduleToEdit));
 
 console.log("勤務交換モード有効化:", draftKey);
 
@@ -3128,7 +3133,13 @@ return;
 }
 
 // ★CSVエクスポート用にグローバル変数に保存
-window.currentScheduleForCSV = draft.schedule;
+// ★★★ 修正: schedule.scheduleの二重構造に対応 ★★★
+let actualSchedule = draft.schedule;
+if (draft.schedule && draft.schedule.schedule) {
+  console.log("二重構造を検出: draft.schedule.schedule を使用");
+  actualSchedule = draft.schedule.schedule;
+}
+window.currentScheduleForCSV = actualSchedule;
 window.currentStaffListForCSV = staffListForAdmin;
 
 // 結果ヘッダー
@@ -3218,7 +3229,7 @@ resultsArea.innerHTML = statusHtml;
 const scoreBreakdownHtml = formatScoreBreakdown(draft);
 resultsArea.innerHTML += scoreBreakdownHtml;
 
-if (!draft.schedule) {
+if (!draft.schedule && !actualSchedule) {
 resultsArea.innerHTML += '<p style="color: red;">スケジュール詳細データがありません</p>';
 return;
 }
@@ -3274,7 +3285,8 @@ draftDiv.appendChild(warningDiv);
 
 const scheduleDiv = document.createElement('div');
 scheduleDiv.style = "padding: 15px; overflow-x: auto;";
-scheduleDiv.innerHTML = generateScheduleTableHTML(draft.schedule, monthKey, staffListForAdmin) +
+// ★★★ 修正: actualScheduleを使用 ★★★
+scheduleDiv.innerHTML = generateScheduleTableHTML(actualSchedule, monthKey, staffListForAdmin) +
 '<button id="confirm-draft1" style="background: #1976D2; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px;">' +
 '<i class="fas fa-check"></i> この案で確定する</button>';
 
