@@ -136,6 +136,7 @@ font-weight: 600;
 .shift-日 { background: #E8F5E9; color: #388E3C; }
 .shift-準 { background: #E1F5FE; color: #0277BD; }
 .shift-深 { background: #E8EAF6; color: #303F9F; }
+.shift-夜 { background: #E8EAF6; color: #303F9F; }  /* 互換性対応 */
 .shift-休, .shift-年, .shift-特, .shift-夏, .shift-AM, .shift-PM {
 background: #F5F5F5; color: #757575;
 }
@@ -878,7 +879,10 @@ const staffRequests = requestsData[staffMember.uid];
 const staffRequestDates = staffRequests ? staffRequests.dates : {};
 
 for (let d = 1; d <= daysInMonth; d++) {
-const shift = staffSchedule.shifts[d] || staffSchedule.shifts[String(d)] || '休';
+let shift = staffSchedule.shifts[d] || staffSchedule.shifts[String(d)] || '休';
+
+// ★★★ 「夜」を「深」に変換（互換性対応） ★★★
+if (shift === '夜') shift = '深';
 
 const date = new Date(year, month - 1, d);
 const dayOfWeek = date.getDay();
@@ -993,7 +997,8 @@ row += '<td style="color: ' + teamColor + '; font-weight: bold;">' + staffMember
 
 const dayCount = staffSchedule.counts['日'] || 0;
 const eveningCount = staffSchedule.counts['準'] || 0;
-const nightCount = staffSchedule.counts['深'] || 0;
+// ★★★ 「夜」も「深」としてカウント（互換性対応） ★★★
+const nightCount = (staffSchedule.counts['深'] || 0) + (staffSchedule.counts['夜'] || 0);
 const nightTotal = eveningCount + nightCount;
 const restCount = staffSchedule.counts['休'] || 0;
 
@@ -1074,7 +1079,10 @@ if (!staffSchedule) return;
 const team = staffMember.team;
 
 for (let d = 1; d <= daysInMonth; d++) {
-const shift = staffSchedule.shifts[d] || staffSchedule.shifts[String(d)];
+let shift = staffSchedule.shifts[d] || staffSchedule.shifts[String(d)];
+
+// ★★★ 「夜」を「深」に変換（互換性対応） ★★★
+if (shift === '夜') shift = '深';
 
 if (shift === '日' || shift === '準' || shift === '深') {
 if (team === 'A' || team === 'B') {
