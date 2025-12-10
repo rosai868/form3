@@ -942,15 +942,15 @@ function generatePersonalCountTable(schedule, staff) {
 let table = '<table class="schedule-table" style="font-size: 11px;">';
 
 table += '<tr>';
-table += '<th>職員名</th>';
-table += '<th>チーム</th>';
-table += '<th style="background: #E8F5E9;">日勤</th>';
-table += '<th style="background: #E1F5FE;">準夜</th>';
-table += '<th style="background: #E8EAF6;">深夜</th>';
-table += '<th style="background: #FFF3E0;">準+深<br>合計</th>';
-table += '<th style="background: #F5F5F5;">休み</th>';
-table += '<th style="background: #E3F2FD;">年休等</th>';
-table += '<th style="background: #FFEBEE;">合計</th>';
+table += '<th style="color: #333;">職員名</th>';
+table += '<th style="color: #333;">チーム</th>';
+table += '<th style="background: #E8F5E9; color: #333;">日勤</th>';
+table += '<th style="background: #E1F5FE; color: #333;">準夜</th>';
+table += '<th style="background: #E8EAF6; color: #333;">深夜</th>';
+table += '<th style="background: #FFF3E0; color: #333;">準+深<br>合計</th>';
+table += '<th style="background: #F5F5F5; color: #333;">休み</th>';
+table += '<th style="background: #E3F2FD; color: #333;">年休等</th>';
+table += '<th style="background: #FFEBEE; color: #333;">合計</th>';
 table += '</tr>';
 
 const teamAStaff = staff.filter(function(s) {
