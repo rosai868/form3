@@ -12,6 +12,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
 
+<!-- PDF出力用ライブラリ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
@@ -141,9 +145,19 @@ font-weight: 600;
 .shift-準 { background: #E1F5FE; color: #0277BD; }
 .shift-深 { background: #E8EAF6; color: #303F9F; }
 .shift-夜 { background: #E8EAF6; color: #303F9F; }  /* 互換性対応 */
-.shift-休, .shift-年, .shift-特, .shift-夏, .shift-AM, .shift-PM {
-background: #F5F5F5; color: #757575;
-}
+.shift-休 { background: #F5F5F5; color: #757575; }
+/* ★★★ 年・出・特・夏・AM・PMは休と違う色で区別 ★★★ */
+.shift-年 { background: #E3F2FD; color: #1565C0; font-weight: bold; }
+.shift-出 { background: #FFF3E0; color: #E65100; font-weight: bold; }
+.shift-特 { background: #F3E5F5; color: #7B1FA2; font-weight: bold; }
+.shift-夏 { background: #FFF8E1; color: #FF8F00; font-weight: bold; }
+.shift-AM { background: #E0F7FA; color: #00838F; font-weight: bold; }
+.shift-PM { background: #FCE4EC; color: #C2185B; font-weight: bold; }
+
+/* ★★★ 準準休深深休パターンの枠スタイル ★★★ */
+.pattern-start { border-left: 3px solid #FF9800 !important; }
+.pattern-end { border-right: 3px solid #FF9800 !important; }
+.pattern-middle { border-top: 2px solid #FF9800 !important; border-bottom: 2px solid #FF9800 !important; }
 
 .swap-candidate {
 padding: 12px;
@@ -678,6 +692,9 @@ font-size: 10px;
 <button onclick="exportScheduleToCSV()" style="background: #4CAF50; flex: 1;">
 <i class="fas fa-file-csv"></i> CSV出力
 </button>
+<button onclick="exportScheduleToPDF()" style="background: #E53935; flex: 1;">
+<i class="fas fa-file-pdf"></i> PDF出力
+</button>
 </div>
 
 <div id="schedule-results" style="margin-top: 20px;"></div>
@@ -872,6 +889,31 @@ header += '<th style="' + headerStyle + '">' + d + '</th>';
 }
 header += '</tr>';
 
+// ★★★ 準準休深深休パターンを検出する関数 ★★★
+function detectPattern(staffSchedule, daysInMonth) {
+    const patterns = {};
+    for (let d = 1; d <= daysInMonth - 5; d++) {
+        const s1 = staffSchedule.shifts[d] || staffSchedule.shifts[String(d)] || '';
+        const s2 = staffSchedule.shifts[d+1] || staffSchedule.shifts[String(d+1)] || '';
+        const s3 = staffSchedule.shifts[d+2] || staffSchedule.shifts[String(d+2)] || '';
+        const s4 = staffSchedule.shifts[d+3] || staffSchedule.shifts[String(d+3)] || '';
+        const s5 = staffSchedule.shifts[d+4] || staffSchedule.shifts[String(d+4)] || '';
+        const s6 = staffSchedule.shifts[d+5] || staffSchedule.shifts[String(d+5)] || '';
+        
+        // 準準休深深休パターン（深夜は「深」または「夜」）
+        if (s1 === '準' && s2 === '準' && s3 === '休' && 
+            (s4 === '深' || s4 === '夜') && (s5 === '深' || s5 === '夜') && s6 === '休') {
+            patterns[d] = 'start';
+            patterns[d+1] = 'middle';
+            patterns[d+2] = 'middle';
+            patterns[d+3] = 'middle';
+            patterns[d+4] = 'middle';
+            patterns[d+5] = 'end';
+        }
+    }
+    return patterns;
+}
+
 let body = '';
 staff.forEach(function(staffMember, index) {
 if (staffMember.originalId === 31) return;
@@ -881,6 +923,9 @@ if (!staffSchedule) {
 console.warn('スケジュールデータが見つかりません: ' + staffMember.name);
 return;
 }
+
+// パターン検出
+const patterns = detectPattern(staffSchedule, daysInMonth);
 
 let nameDisplay = staffMember.name;
 if (staffMember.team) {
@@ -923,7 +968,17 @@ if (requestedShift && requestedShift !== shift && !isRestShift) {
 cellStyle += ' border: 3px solid #D32F2F; box-sizing: border-box;';
 }
 
-body += '<td class="shift-' + shift + '" style="' + cellStyle + '">' + shift + '</td>';
+// ★★★ パターン枠を追加 ★★★
+let patternClass = '';
+if (patterns[d] === 'start') {
+    patternClass = ' pattern-start pattern-middle';
+} else if (patterns[d] === 'end') {
+    patternClass = ' pattern-end pattern-middle';
+} else if (patterns[d] === 'middle') {
+    patternClass = ' pattern-middle';
+}
+
+body += '<td class="shift-' + shift + patternClass + '" style="' + cellStyle + '">' + shift + '</td>';
 }
 body += '</tr>';
 });
@@ -3442,6 +3497,102 @@ console.log('CSVダウンロード実行完了');
 console.error('CSVダウンロードエラー:', e);
 alert('CSVのダウンロードに失敗しました: ' + e.message);
 }
+}
+
+// ★★★ PDF出力機能 ★★★
+async function exportScheduleToPDF() {
+    console.log('=== PDFエクスポート開始 ===');
+    
+    const scheduleResults = document.getElementById('schedule-results');
+    if (!scheduleResults || scheduleResults.innerHTML.trim() === '') {
+        alert('エクスポートするスケジュールがありません。\n先に「保存済みを読み込む」でスケジュールを表示してください。');
+        return;
+    }
+    
+    const monthKey = window.currentMonthKey || new Date().toISOString().slice(0, 7);
+    
+    // 進捗表示
+    const originalContent = scheduleResults.innerHTML;
+    const progressDiv = document.createElement('div');
+    progressDiv.id = 'pdf-progress';
+    progressDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 30px 50px; border-radius: 10px; z-index: 9999; text-align: center;';
+    progressDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>PDF作成中...<br><small>しばらくお待ちください</small>';
+    document.body.appendChild(progressDiv);
+    
+    try {
+        const { jsPDF } = window.jspdf;
+        
+        // A3横向き（297mm x 420mm）
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a3'
+        });
+        
+        // 表示エリアを一時的に広げてキャプチャ
+        const container = scheduleResults.closest('.container');
+        const originalMaxWidth = container.style.maxWidth;
+        const originalWidth = container.style.width;
+        container.style.maxWidth = 'none';
+        container.style.width = '1800px';
+        
+        // 各テーブルをキャプチャ
+        const tables = scheduleResults.querySelectorAll('.admin-table-container, .schedule-table');
+        const h4Elements = scheduleResults.querySelectorAll('h4');
+        
+        // 全体をキャプチャ
+        await new Promise(resolve => setTimeout(resolve, 500)); // レンダリング待ち
+        
+        const canvas = await html2canvas(scheduleResults, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff',
+            windowWidth: 1800
+        });
+        
+        // 元に戻す
+        container.style.maxWidth = originalMaxWidth;
+        container.style.width = originalWidth;
+        
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 410; // A3横の幅（余白を考慮）
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // ページに収まるように分割
+        const pageHeight = 287; // A3横の高さ（余白を考慮）
+        let heightLeft = imgHeight;
+        let position = 5;
+        
+        // タイトル
+        pdf.setFontSize(16);
+        pdf.text('勤務表 ' + monthKey, 10, 12);
+        position = 18;
+        
+        // 画像を追加（ページをまたぐ場合は分割）
+        pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - position);
+        
+        while (heightLeft > 0) {
+            pdf.addPage();
+            position = -(pageHeight - position) - (imgHeight - heightLeft - pageHeight);
+            pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+        
+        // ダウンロード
+        pdf.save('勤務表_' + monthKey + '.pdf');
+        
+        console.log('PDFダウンロード完了');
+        
+    } catch (error) {
+        console.error('PDFエクスポートエラー:', error);
+        alert('PDFの作成に失敗しました: ' + error.message);
+    } finally {
+        // 進捗表示を削除
+        const progress = document.getElementById('pdf-progress');
+        if (progress) progress.remove();
+    }
 }
 
 } catch (error) {
