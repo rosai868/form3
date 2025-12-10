@@ -3521,145 +3521,131 @@ window.exportScheduleToPDF = async function() {
     try {
         const { jsPDF } = window.jspdf;
         
-        // A3横向き（十分な幅を確保）
+        // ★★★ シンプルに：表示されている内容をそのままキャプチャ ★★★
+        
+        // スクロール可能なコンテナを一時的に展開
+        const scrollDivs = scheduleResults.querySelectorAll('div[style*="overflow"]');
+        const originalStyles = [];
+        scrollDivs.forEach((div, i) => {
+            originalStyles[i] = {
+                overflow: div.style.overflow,
+                maxWidth: div.style.maxWidth,
+                width: div.style.width
+            };
+            div.style.overflow = 'visible';
+            div.style.maxWidth = 'none';
+        });
+        
+        // admin-table-containerも展開
+        const tableContainer = scheduleResults.querySelector('.admin-table-container');
+        let tcOriginal = {};
+        if (tableContainer) {
+            tcOriginal = {
+                overflow: tableContainer.style.overflow,
+                maxWidth: tableContainer.style.maxWidth
+            };
+            tableContainer.style.overflow = 'visible';
+            tableContainer.style.maxWidth = 'none';
+            
+            // 内部のスクロールdivも
+            const innerDiv = tableContainer.querySelector('div');
+            if (innerDiv) {
+                innerDiv.style.overflow = 'visible';
+                innerDiv.style.maxWidth = 'none';
+            }
+        }
+        
+        await new Promise(r => setTimeout(r, 300));
+        
+        // 全体をキャプチャ
+        const canvas = await html2canvas(scheduleResults, {
+            scale: 1.5,
+            useCORS: true,
+            logging: true,
+            backgroundColor: '#ffffff',
+            scrollX: 0,
+            scrollY: -window.scrollY,
+            windowWidth: document.documentElement.scrollWidth,
+            windowHeight: document.documentElement.scrollHeight
+        });
+        
+        // スタイルを元に戻す
+        scrollDivs.forEach((div, i) => {
+            div.style.overflow = originalStyles[i].overflow;
+            div.style.maxWidth = originalStyles[i].maxWidth;
+            div.style.width = originalStyles[i].width;
+        });
+        if (tableContainer) {
+            tableContainer.style.overflow = tcOriginal.overflow;
+            tableContainer.style.maxWidth = tcOriginal.maxWidth;
+            const innerDiv = tableContainer.querySelector('div');
+            if (innerDiv) {
+                innerDiv.style.overflow = '';
+                innerDiv.style.maxWidth = '';
+            }
+        }
+        
+        console.log('Canvas size:', canvas.width, 'x', canvas.height);
+        
+        // ★★★ 画像のサイズに応じてPDFサイズを決定 ★★★
+        const imgData = canvas.toDataURL('image/jpeg', 0.9);
+        
+        // 横長の場合はA3横、縦長の場合はA3縦
+        const isLandscape = canvas.width > canvas.height;
         const pdf = new jsPDF({
-            orientation: 'landscape',
+            orientation: isLandscape ? 'landscape' : 'portrait',
             unit: 'mm',
             format: 'a3'
         });
         
-        // A3横: 420mm x 297mm
-        const pageWidth = 420;
-        const pageHeight = 297;
+        const pageWidth = isLandscape ? 420 : 297;
+        const pageHeight = isLandscape ? 297 : 420;
         const margin = 5;
         
-        // ★★★ 方法を変更：表示されている要素をそのままキャプチャ ★★★
+        // 画像をページに収める
+        const availableWidth = pageWidth - margin * 2;
+        const availableHeight = pageHeight - margin * 2;
         
-        // シフト表のコンテナを取得
-        const tableContainer = scheduleResults.querySelector('.admin-table-container');
+        let imgWidth = availableWidth;
+        let imgHeight = (canvas.height * imgWidth) / canvas.width;
         
-        // 集計表を取得
-        const allTables = scheduleResults.querySelectorAll('table.schedule-table');
-        
-        // ★★★ ページ1: シフト表 ★★★
-        if (tableContainer) {
-            // 一時的にスタイルを変更して全体を表示
-            const originalOverflow = tableContainer.style.overflow;
-            const originalMaxWidth = tableContainer.style.maxWidth;
-            tableContainer.style.overflow = 'visible';
-            tableContainer.style.maxWidth = 'none';
+        // ページに収まらない場合は複数ページに分割
+        if (imgHeight <= availableHeight) {
+            // 1ページに収まる
+            pdf.addImage(imgData, 'JPEG', margin, margin, imgWidth, imgHeight);
+        } else {
+            // 複数ページに分割
+            const totalPages = Math.ceil(imgHeight / availableHeight);
+            console.log('ページ数:', totalPages);
             
-            // スクロール位置を保存してリセット
-            const scrollContainer = tableContainer.querySelector('div');
-            let originalScrollLeft = 0;
-            if (scrollContainer) {
-                originalScrollLeft = scrollContainer.scrollLeft;
-                scrollContainer.scrollLeft = 0;
-                scrollContainer.style.overflow = 'visible';
+            for (let page = 0; page < totalPages; page++) {
+                if (page > 0) pdf.addPage();
+                
+                // 元画像のどの部分を切り出すか
+                const srcY = (page * availableHeight / imgHeight) * canvas.height;
+                const srcHeight = (availableHeight / imgHeight) * canvas.height;
+                
+                // 部分的なキャンバスを作成
+                const partCanvas = document.createElement('canvas');
+                partCanvas.width = canvas.width;
+                partCanvas.height = Math.min(srcHeight, canvas.height - srcY);
+                const ctx = partCanvas.getContext('2d');
+                ctx.drawImage(canvas, 0, srcY, canvas.width, partCanvas.height, 0, 0, canvas.width, partCanvas.height);
+                
+                const partImgData = partCanvas.toDataURL('image/jpeg', 0.9);
+                const partHeight = (partCanvas.height * imgWidth) / canvas.width;
+                
+                pdf.addImage(partImgData, 'JPEG', margin, margin, imgWidth, partHeight);
             }
-            
-            await new Promise(r => setTimeout(r, 200));
-            
-            const canvas1 = await html2canvas(tableContainer, {
-                scale: 1,
-                useCORS: true,
-                logging: true,
-                backgroundColor: '#ffffff',
-                scrollX: 0,
-                scrollY: 0,
-                windowWidth: tableContainer.scrollWidth + 100,
-                width: tableContainer.scrollWidth + 50
-            });
-            
-            // スタイルを元に戻す
-            tableContainer.style.overflow = originalOverflow;
-            tableContainer.style.maxWidth = originalMaxWidth;
-            if (scrollContainer) {
-                scrollContainer.scrollLeft = originalScrollLeft;
-                scrollContainer.style.overflow = '';
-            }
-            
-            const imgData1 = canvas1.toDataURL('image/jpeg', 0.85);
-            
-            // A3に収まるように計算
-            const availableWidth = pageWidth - margin * 2;
-            const availableHeight = pageHeight - margin * 2 - 10;
-            
-            let imgWidth = availableWidth;
-            let imgHeight = (canvas1.height * imgWidth) / canvas1.width;
-            
-            // 高さがはみ出る場合は高さ基準で調整
-            if (imgHeight > availableHeight) {
-                imgHeight = availableHeight;
-                imgWidth = (canvas1.width * imgHeight) / canvas1.height;
-            }
-            
-            pdf.setFontSize(14);
-            pdf.text('勤務表 ' + monthKey, margin, 10);
-            pdf.addImage(imgData1, 'JPEG', margin, 15, imgWidth, imgHeight);
-        }
-        
-        // ★★★ ページ2: 集計表 ★★★
-        if (allTables.length >= 1) {
-            pdf.addPage();
-            
-            // 集計表をまとめてキャプチャするためのコンテナ
-            const tempContainer = document.createElement('div');
-            tempContainer.style.cssText = 'position: absolute; left: 0; top: 0; background: white; padding: 10px; z-index: -1;';
-            
-            // 日毎の人数集計
-            const title1 = document.createElement('h4');
-            title1.textContent = '📊 日毎の人数集計';
-            title1.style.cssText = 'font-size: 14px; margin: 0 0 10px 0; color: #333;';
-            tempContainer.appendChild(title1);
-            tempContainer.appendChild(allTables[0].cloneNode(true));
-            
-            // 個人別シフト回数集計
-            if (allTables.length >= 2) {
-                const title2 = document.createElement('h4');
-                title2.textContent = '👤 個人別シフト回数集計';
-                title2.style.cssText = 'font-size: 14px; margin: 20px 0 10px 0; color: #333;';
-                tempContainer.appendChild(title2);
-                tempContainer.appendChild(allTables[1].cloneNode(true));
-            }
-            
-            document.body.appendChild(tempContainer);
-            await new Promise(r => setTimeout(r, 200));
-            
-            const canvas2 = await html2canvas(tempContainer, {
-                scale: 1.2,
-                useCORS: true,
-                logging: true,
-                backgroundColor: '#ffffff'
-            });
-            
-            document.body.removeChild(tempContainer);
-            
-            const imgData2 = canvas2.toDataURL('image/jpeg', 0.85);
-            
-            const availableWidth = pageWidth - margin * 2;
-            const availableHeight = pageHeight - margin * 2 - 10;
-            
-            let imgWidth2 = availableWidth;
-            let imgHeight2 = (canvas2.height * imgWidth2) / canvas2.width;
-            
-            if (imgHeight2 > availableHeight) {
-                imgHeight2 = availableHeight;
-                imgWidth2 = (canvas2.width * imgHeight2) / canvas2.height;
-            }
-            
-            pdf.setFontSize(14);
-            pdf.text('集計表 ' + monthKey, margin, 10);
-            pdf.addImage(imgData2, 'JPEG', margin, 15, imgWidth2, imgHeight2);
         }
         
         pdf.save('勤務表_' + monthKey + '.pdf');
         console.log('PDFダウンロード完了');
-        alert('PDFを保存しました');
+        alert('PDFを保存しました（' + (imgHeight <= availableHeight ? '1' : Math.ceil(imgHeight / availableHeight)) + 'ページ）');
         
     } catch (error) {
         console.error('PDFエクスポートエラー:', error);
-        alert('PDFの作成に失敗しました: ' + error.message);
+        alert('PDFの作成に失敗しました: ' + error.message + '\n\nコンソールを確認してください。');
     } finally {
         const progress = document.getElementById('pdf-progress');
         if (progress) progress.remove();
