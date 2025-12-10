@@ -649,6 +649,14 @@ font-size: 10px;
 
 </div>
 
+<div style="margin-top: 12px; padding: 12px; background: #FFF3E0; border: 2px solid #FF9800; border-radius: 8px;">
+<label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+<input type="checkbox" id="constraint-request-priority" style="width: 18px; height: 18px;">
+<span style="font-weight: bold; color: #E65100;"><i class="fas fa-star"></i> 希望優先モード</span>
+<span style="font-size: 11px; color: #666;">（希望を最大限叶える）</span>
+</label>
+</div>
+
 <div style="margin-top: 10px; text-align: right;">
 <button id="reset-constraints-btn" style="background: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 5px;">
 <i class="fas fa-undo"></i> 全てオン
@@ -738,6 +746,8 @@ function resetConstraints() {
     document.getElementById('constraint-jun-to-shin').checked = true;
     document.getElementById('constraint-day-to-shin').checked = true;
     document.getElementById('constraint-pattern-bonus').checked = true;
+    // 希望優先モードはオフ
+    document.getElementById('constraint-request-priority').checked = false;
 }
 
 function relaxConstraints() {
@@ -755,7 +765,10 @@ function relaxConstraints() {
     document.getElementById('constraint-jun-to-shin').checked = false;
     document.getElementById('constraint-day-to-shin').checked = false;
     document.getElementById('constraint-pattern-bonus').checked = false;
+    // 希望優先モードはオフ
+    document.getElementById('constraint-request-priority').checked = false;
     alert('緩和モードに設定しました。チームバランス・リーダー必須・深夜間隔等をオフにしました。');
+}
 }
 
 function getConstraintSettings() {
@@ -773,7 +786,9 @@ function getConstraintSettings() {
         junBeforeRest: document.getElementById('constraint-jun-before-rest')?.checked ?? true,
         junToShin: document.getElementById('constraint-jun-to-shin')?.checked ?? true,
         dayToShin: document.getElementById('constraint-day-to-shin')?.checked ?? true,
-        patternBonus: document.getElementById('constraint-pattern-bonus')?.checked ?? true
+        patternBonus: document.getElementById('constraint-pattern-bonus')?.checked ?? true,
+        // 希望優先モード
+        requestPriority: document.getElementById('constraint-request-priority')?.checked ?? false
     };
 }
 
