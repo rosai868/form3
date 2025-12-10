@@ -3425,7 +3425,7 @@ showMessage('確定に失敗しました: ' + error.message, 'error');
 }
 
 // CSVエクスポート機能
-function exportScheduleToCSV() {
+window.exportScheduleToCSV = function() {
 console.log('=== CSVエクスポート開始 ===');
 console.log('currentScheduleForCSV:', window.currentScheduleForCSV);
 console.log('currentStaffListForCSV:', window.currentStaffListForCSV);
@@ -3500,7 +3500,7 @@ alert('CSVのダウンロードに失敗しました: ' + e.message);
 }
 
 // ★★★ PDF出力機能 ★★★
-async function exportScheduleToPDF() {
+window.exportScheduleToPDF = async function() {
     console.log('=== PDFエクスポート開始 ===');
     
     const scheduleResults = document.getElementById('schedule-results');
