@@ -3512,7 +3512,6 @@ window.exportScheduleToPDF = async function() {
     const monthKey = window.currentMonthKey || new Date().toISOString().slice(0, 7);
     
     // 進捗表示
-    const originalContent = scheduleResults.innerHTML;
     const progressDiv = document.createElement('div');
     progressDiv.id = 'pdf-progress';
     progressDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 30px 50px; border-radius: 10px; z-index: 9999; text-align: center;';
@@ -3522,62 +3521,142 @@ window.exportScheduleToPDF = async function() {
     try {
         const { jsPDF } = window.jspdf;
         
-        // A3横向き（297mm x 420mm）
+        // A4横向き
         const pdf = new jsPDF({
             orientation: 'landscape',
             unit: 'mm',
-            format: 'a3'
+            format: 'a4'
         });
         
-        // 表示エリアを一時的に広げてキャプチャ
-        const container = scheduleResults.closest('.container');
-        const originalMaxWidth = container.style.maxWidth;
-        const originalWidth = container.style.width;
-        container.style.maxWidth = 'none';
-        container.style.width = '1800px';
+        const pageWidth = 297;  // A4横の幅
+        const pageHeight = 210; // A4横の高さ
+        const margin = 5;
+        const contentWidth = pageWidth - margin * 2;
         
-        // 各テーブルをキャプチャ
-        const tables = scheduleResults.querySelectorAll('.admin-table-container, .schedule-table');
-        const h4Elements = scheduleResults.querySelectorAll('h4');
+        // ★★★ ページ1: OR-Tools結果 + シフト表 ★★★
+        // OR-Tools結果部分を取得
+        const statusDiv = scheduleResults.querySelector('div[style*="background: #E8F5E9"]');
+        const warningsDiv = scheduleResults.querySelector('div[style*="background: #FFF3E0"]');
         
-        // 全体をキャプチャ
-        await new Promise(resolve => setTimeout(resolve, 500)); // レンダリング待ち
+        // シフト表を取得
+        const scheduleTableContainer = scheduleResults.querySelector('.admin-table-container');
         
-        const canvas = await html2canvas(scheduleResults, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: '#ffffff',
-            windowWidth: 1800
-        });
+        if (scheduleTableContainer) {
+            // ページ1用のコンテナを作成
+            const page1Container = document.createElement('div');
+            page1Container.style.cssText = 'position: absolute; left: -9999px; top: 0; background: white; padding: 10px; width: 1400px;';
+            
+            // OR-Tools結果をコピー
+            if (statusDiv) {
+                const statusClone = statusDiv.cloneNode(true);
+                statusClone.style.marginBottom = '10px';
+                statusClone.style.fontSize = '11px';
+                page1Container.appendChild(statusClone);
+            }
+            if (warningsDiv) {
+                const warningsClone = warningsDiv.cloneNode(true);
+                warningsClone.style.marginBottom = '10px';
+                warningsClone.style.fontSize = '10px';
+                page1Container.appendChild(warningsClone);
+            }
+            
+            // シフト表をコピー（フォントサイズを小さく）
+            const tableClone = scheduleTableContainer.cloneNode(true);
+            tableClone.style.fontSize = '9px';
+            const tableElement = tableClone.querySelector('table');
+            if (tableElement) {
+                tableElement.style.fontSize = '9px';
+                // セルのパディングを調整
+                const cells = tableElement.querySelectorAll('td, th');
+                cells.forEach(cell => {
+                    cell.style.padding = '2px 3px';
+                    cell.style.fontSize = '9px';
+                });
+            }
+            page1Container.appendChild(tableClone);
+            
+            document.body.appendChild(page1Container);
+            
+            // キャプチャ（解像度を下げる）
+            const canvas1 = await html2canvas(page1Container, {
+                scale: 1.2,  // 解像度を下げる
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+            
+            document.body.removeChild(page1Container);
+            
+            // JPEG圧縮で軽量化
+            const imgData1 = canvas1.toDataURL('image/jpeg', 0.7);
+            const imgHeight1 = (canvas1.height * contentWidth) / canvas1.width;
+            
+            pdf.setFontSize(12);
+            pdf.text('勤務表 ' + monthKey + ' - シフト表', margin, 8);
+            pdf.addImage(imgData1, 'JPEG', margin, 12, contentWidth, Math.min(imgHeight1, pageHeight - 15));
+        }
         
-        // 元に戻す
-        container.style.maxWidth = originalMaxWidth;
-        container.style.width = originalWidth;
+        // ★★★ ページ2: 日毎の人数集計 + 個人別シフト回数集計 ★★★
+        pdf.addPage();
         
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = 410; // A3横の幅（余白を考慮）
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        // 集計表を取得（schedule-tableクラスのテーブル）
+        const allTables = scheduleResults.querySelectorAll('table.schedule-table');
         
-        // ページに収まるように分割
-        const pageHeight = 287; // A3横の高さ（余白を考慮）
-        let heightLeft = imgHeight;
-        let position = 5;
-        
-        // タイトル
-        pdf.setFontSize(16);
-        pdf.text('勤務表 ' + monthKey, 10, 12);
-        position = 18;
-        
-        // 画像を追加（ページをまたぐ場合は分割）
-        pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
-        heightLeft -= (pageHeight - position);
-        
-        while (heightLeft > 0) {
-            pdf.addPage();
-            position = -(pageHeight - position) - (imgHeight - heightLeft - pageHeight);
-            pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+        if (allTables.length >= 2) {
+            // ページ2用のコンテナを作成
+            const page2Container = document.createElement('div');
+            page2Container.style.cssText = 'position: absolute; left: -9999px; top: 0; background: white; padding: 10px; width: 1200px;';
+            
+            // 日毎の人数集計（最初のschedule-table）
+            const countTableTitle = document.createElement('h4');
+            countTableTitle.textContent = '📊 日毎の人数集計';
+            countTableTitle.style.cssText = 'font-size: 12px; margin-bottom: 5px; color: #333;';
+            page2Container.appendChild(countTableTitle);
+            
+            const countTable = allTables[0].cloneNode(true);
+            countTable.style.fontSize = '9px';
+            countTable.style.marginBottom = '15px';
+            const countCells = countTable.querySelectorAll('td, th');
+            countCells.forEach(cell => {
+                cell.style.padding = '2px 4px';
+                cell.style.fontSize = '9px';
+            });
+            page2Container.appendChild(countTable);
+            
+            // 個人別シフト回数集計（2番目のschedule-table）
+            const personalTableTitle = document.createElement('h4');
+            personalTableTitle.textContent = '👤 個人別シフト回数集計';
+            personalTableTitle.style.cssText = 'font-size: 12px; margin-bottom: 5px; margin-top: 10px; color: #333;';
+            page2Container.appendChild(personalTableTitle);
+            
+            const personalTable = allTables[1].cloneNode(true);
+            personalTable.style.fontSize = '9px';
+            const personalCells = personalTable.querySelectorAll('td, th');
+            personalCells.forEach(cell => {
+                cell.style.padding = '2px 4px';
+                cell.style.fontSize = '9px';
+            });
+            page2Container.appendChild(personalTable);
+            
+            document.body.appendChild(page2Container);
+            
+            // キャプチャ
+            const canvas2 = await html2canvas(page2Container, {
+                scale: 1.2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+            
+            document.body.removeChild(page2Container);
+            
+            // JPEG圧縮
+            const imgData2 = canvas2.toDataURL('image/jpeg', 0.7);
+            const imgHeight2 = (canvas2.height * contentWidth) / canvas2.width;
+            
+            pdf.setFontSize(12);
+            pdf.text('勤務表 ' + monthKey + ' - 集計表', margin, 8);
+            pdf.addImage(imgData2, 'JPEG', margin, 12, contentWidth, Math.min(imgHeight2, pageHeight - 15));
         }
         
         // ダウンロード
