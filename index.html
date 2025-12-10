@@ -32,64 +32,55 @@ button:hover { background: #4DB6AC; }
 button:disabled { background: #cccccc; cursor: not-allowed; }
 .timer { background: #F8F8F8; border: 1px solid #F0EAE4; color: #777; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: right; font-size: 12px; }
 .timer-display { font-size: 14px; font-weight: 600; margin-top: 5px; color: #5D4037; }
-.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, #00897B 0%, #4DB6AC 100%); border-radius: 16px; box-shadow: 0 4px 15px rgba(0, 137, 123, 0.3); }
-.calendar-header h2 { color: white; font-size: 22px; text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-.calendar-header button { width: auto; padding: 10px 24px; background: rgba(255,255,255,0.9); color: #00897B; border-radius: 25px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-.calendar-header button:hover { background: white; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-#calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: transparent; border: none; border-radius: 12px; padding: 10px; background: #F8F9FA; }
-.weekday-header { background: transparent; color: #5D4037; padding: 12px 5px; text-align: center; font-weight: 700; font-size: 13px; }
-.weekday-header.sunday { color: #E57373; }
-.weekday-header.saturday { color: #64B5F6; }
-.calendar-day { background: white; height: 75px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; cursor: pointer; position: relative; user-select: none; transition: all 0.2s ease; border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding-top: 8px; }
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #F8F8F8; border-radius: 8px; }
+.calendar-header button { width: auto; padding: 8px 20px; background: #B0BEC5; }
+.calendar-header button:hover { background: #90A4AE; }
+#calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #E0E0E0; border: 1px solid #E0E0E0; border-radius: 8px; overflow: hidden; }
+.weekday-header { background: #00897B; color: white; padding: 10px 5px; text-align: center; font-weight: 600; font-size: 12px; }
+.weekday-header.sunday { background: #E57373; }
+.weekday-header.saturday { background: #64B5F6; }
+.calendar-day { background: white; height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; position: relative; user-select: none; transition: background 0.2s; border: 2px solid transparent; }
 .calendar-day.selected { box-sizing: border-box; }
-.calendar-day:hover:not(.disabled):not(.empty) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-.calendar-day.empty { background: transparent; cursor: default; box-shadow: none; }
-.calendar-day.sunday { background: #FFF5F5; }
-.calendar-day.saturday { background: #F5F8FF; }
-.calendar-day.holiday { background: linear-gradient(135deg, #FFF5F5 0%, #FFE8E8 100%); }
-.calendar-day.disabled { background: #F5F5F5; color: #BDBDBD; cursor: not-allowed; box-shadow: none; }
-.calendar-day-number { font-size: 16px; font-weight: 700; position: relative; top: 0; left: 0; color: #333; }
-.calendar-day.sunday .calendar-day-number { color: #E57373; }
-.calendar-day.saturday .calendar-day-number { color: #64B5F6; }
-.calendar-day-request { position: absolute; bottom: 8px; font-size: 10px; font-weight: 700; height: 24px; min-width: 24px; padding: 0 6px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.request-type-休 { color: white; background: linear-gradient(135deg, #EF5350 0%, #E53935 100%); border: none; }
-.request-type-年 { color: white; background: linear-gradient(135deg, #42A5F5 0%, #1E88E5 100%); border: none; }
-.request-type-出 { color: white; background: linear-gradient(135deg, #FFA726 0%, #FB8C00 100%); border: none; }
-.request-type-日 { color: white; background: linear-gradient(135deg, #66BB6A 0%, #43A047 100%); border: none; }
-.request-type-特 { color: white; background: linear-gradient(135deg, #9575CD 0%, #7E57C2 100%); border: none; }
-.request-type-AM { color: white; background: linear-gradient(135deg, #29B6F6 0%, #039BE5 100%); border: none; }
-.request-type-PM { color: white; background: linear-gradient(135deg, #5C6BC0 0%, #3F51B5 100%); border: none; }
-.request-type-夏 { color: white; background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); border: none; }
-.calendar-day.selected { border: 2px solid #80CBC4; background-color: #E0F2F1; }
-.calendar-day.selected-休 { border: 2px solid #EF5350; background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%); }
-.calendar-day.selected-年 { border: 2px solid #42A5F5; background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); }
-.calendar-day.selected-出 { border: 2px solid #FFA726; background: linear-gradient(135deg, #FFF8E1 0%, #FFE0B2 100%); }
-.calendar-day.selected-日 { border: 2px solid #66BB6A; background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); }
-.calendar-day.selected-特 { border: 2px solid #9575CD; background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); }
-.calendar-day.selected-AM { border: 2px solid #29B6F6; background: linear-gradient(135deg, #E1F5FE 0%, #B3E5FC 100%); }
-.calendar-day.selected-PM { border: 2px solid #5C6BC0; background: linear-gradient(135deg, #E8EAF6 0%, #C5CAE9 100%); }
-.calendar-day.selected-夏 { border: 2px solid #FF9800; background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); }
-.request-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 25px 0; padding: 20px; background: #F8F9FA; border-radius: 16px; }
-.request-button { padding: 16px 8px; text-align: center; border: none; border-radius: 12px; cursor: pointer; background: white; font-weight: 600; color: #5D4037; transition: all 0.25s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.request-button:hover:not(.active) { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
-.request-button .icon { font-size: 24px; }
-.request-button .label { font-size: 12px; line-height: 1.3; }
-.request-button.active { transform: scale(1.02); }
-.request-button.active[data-type="休"] { background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%); color: #C62828; box-shadow: 0 4px 15px rgba(239, 83, 80, 0.3); }
-.request-button.active[data-type="年"] { background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); color: #1565C0; box-shadow: 0 4px 15px rgba(66, 165, 245, 0.3); }
-.request-button.active[data-type="出"] { background: linear-gradient(135deg, #FFF8E1 0%, #FFE0B2 100%); color: #E65100; box-shadow: 0 4px 15px rgba(255, 167, 38, 0.3); }
-.request-button.active[data-type="日"] { background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); color: #2E7D32; box-shadow: 0 4px 15px rgba(102, 187, 106, 0.3); }
-.request-button.active[data-type="特"] { background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); color: #6A1B9A; box-shadow: 0 4px 15px rgba(149, 117, 205, 0.3); }
-.request-button.active[data-type="AM"] { background: linear-gradient(135deg, #E1F5FE 0%, #B3E5FC 100%); color: #0277BD; box-shadow: 0 4px 15px rgba(41, 182, 246, 0.3); }
-.request-button.active[data-type="PM"] { background: linear-gradient(135deg, #E8EAF6 0%, #C5CAE9 100%); color: #283593; box-shadow: 0 4px 15px rgba(92, 107, 192, 0.3); }
-.request-button.active[data-type="夏"] { background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); color: #E65100; box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3); }
-.selected-dates { margin-top: 25px; padding: 20px; background: white; border-radius: 16px; border: none; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-.selected-dates h3 { color: #00897B; font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-.selected-dates h3::before { content: '📋'; }
-.selected-date-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin: 8px 0; background: #F8F9FA; border-radius: 10px; border: none; transition: all 0.2s ease; }
-.selected-date-item:hover { background: #F0F0F0; }
-.selected-date-item button { width: auto; padding: 6px 16px; background: linear-gradient(135deg, #FFAB91 0%, #FF8A65 100%); font-size: 12px; border-radius: 20px; box-shadow: 0 2px 6px rgba(255, 138, 101, 0.3); }
-.selected-date-item button:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(255, 138, 101, 0.4); }
+.calendar-day:hover:not(.disabled):not(.empty) { background: #E0F2F1; }
+.calendar-day.empty { background: #F4F7F6; cursor: default; border: none; }
+.calendar-day.sunday { background: #FFFBF7; }
+.calendar-day.saturday { background: #F4F7FF; }
+.calendar-day.holiday { background: #FFFBF7; }
+.calendar-day.disabled { background: #F5F5F5; color: #BDBDBD; cursor: not-allowed; }
+.calendar-day-number { font-size: 15px; font-weight: 600; position: absolute; top: 5px; left: 8px; color: #777; }
+.calendar-day-request { position: absolute; bottom: 5px; right: 5px; font-size: 11px; font-weight: 700; height: 22px; width: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.request-type-休 { color: #EF5350; background: #FFEBEE; border: 1px solid #FFCDD2; }
+.request-type-年 { color: #42A5F5; background: #E3F2FD; border: 1px solid #BBDEFB; }
+.request-type-出 { color: #FFA726; background: #FFF8E1; border: 1px solid #FFE0B2; }
+.request-type-日 { color: #66BB6A; background: #E8F5E9; border: 1px solid #C8E6C9; }
+.request-type-特 { color: #9575CD; background: #F3E5F5; border: 1px solid #B39DDB; }
+.request-type-AM { color: #03A9F4; background: #E1F5FE; border: 1px solid #81D4FA; }
+.request-type-PM { color: #3F51B5; background: #E8EAF6; border: 1px solid #9FA8DA; }
+.request-type-夏 { color: #FF9800; background: #FFF3E0; border: 1px solid #FFCC80; }
+.calendar-day.selected { border-color: #80CBC4; background-color: #F0FAF9; }
+.calendar-day.selected-休 { border-color: #EF5350; background-color: #FFEBEE; }
+.calendar-day.selected-年 { border-color: #42A5F5; background-color: #E3F2FD; }
+.calendar-day.selected-出 { border-color: #FFA726; background-color: #FFF8E1; }
+.calendar-day.selected-日 { border-color: #66BB6A; background-color: #E8F5E9; }
+.calendar-day.selected-特 { border-color: #9575CD; background-color: #F3E5F5; }
+.calendar-day.selected-AM { border-color: #03A9F4; background-color: #E1F5FE; }
+.calendar-day.selected-PM { border-color: #3F51B5; background-color: #E8EAF6; }
+.calendar-day.selected-夏 { border-color: #FF9800; background-color: #FFF3E0; }
+.request-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 20px 0; }
+.request-button { padding: 15px 10px; text-align: center; border: 2px solid #E0E0E0; border-radius: 8px; cursor: pointer; background: white; font-weight: 600; color: #5D4037; transition: all 0.2s; }
+.request-button:hover:not(.active) { background: #F8F8F8; border-color: #BDBDBD; }
+.request-button.active[data-type="休"] { background-color: #FFEBEE; border-color: #EF5350; color: #EF5350; }
+.request-button.active[data-type="年"] { background-color: #E3F2FD; border-color: #42A5F5; color: #42A5F5; }
+.request-button.active[data-type="出"] { background-color: #FFF8E1; border-color: #FFA726; color: #FFA726; }
+.request-button.active[data-type="日"] { background-color: #E8F5E9; border-color: #66BB6A; color: #66BB6A; }
+.request-button.active[data-type="特"] { background-color: #F3E5F5; border-color: #9575CD; color: #9575CD; }
+.request-button.active[data-type="AM"] { background-color: #E1F5FE; border-color: #03A9F4; color: #03A9F4; }
+.request-button.active[data-type="PM"] { background-color: #E8EAF6; border-color: #3F51B5; color: #3F51B5; }
+.request-button.active[data-type="夏"] { background-color: #FFF3E0; border-color: #FF9800; color: #FF9800; }
+.selected-dates { margin-top: 20px; padding: 15px; background: #F8F8F8; border-radius: 8px; border: 1px solid #F0EAE4; }
+.selected-date-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin: 5px 0; background: white; border-radius: 6px; border: 1px solid #E0E0E0; }
+.selected-date-item button { width: auto; padding: 5px 15px; background: #FFAB91; font-size: 12px; border-radius: 6px; }
+.selected-date-item button:hover { background: #FF8A65; }
 .error-message { color: #EF5350; margin-top: 10px; text-align: center; }
 .success-message { color: #66BB6A; margin-top: 10px; text-align: center; }
 .admin-table-container { overflow-x: auto; margin-top: 20px; border: 1px solid #E0E0E0; border-radius: 8px; }
@@ -135,8 +126,7 @@ font-weight: 600;
 }
 .shift-日 { background: #E8F5E9; color: #388E3C; }
 .shift-準 { background: #E1F5FE; color: #0277BD; }
-.shift-深 { background: #E8EAF6; color: #303F9F; }
-.shift-夜 { background: #E8EAF6; color: #303F9F; }  /* 互換性対応 */
+.shift-夜 { background: #E8EAF6; color: #303F9F; }
 .shift-休, .shift-年, .shift-特, .shift-夏, .shift-AM, .shift-PM {
 background: #F5F5F5; color: #757575;
 }
@@ -353,48 +343,24 @@ opacity: 0;
 /* 希望テーブルをコンパクトに */
 .admin-table {
 table-layout: fixed;
-font-size: 11px;
+font-size: 10px;
 }
 .admin-table th, .admin-table td {
-padding: 3px 1px;
-text-align: center;
+padding: 3px 2px;
+min-width: 18px;
+max-width: 26px;
 overflow: hidden;
-text-overflow: ellipsis;
-white-space: nowrap;
 }
-/* ID列 - 最小限に */
-.admin-table td:first-child,
-.admin-table th:first-child { 
-width: 22px; 
-min-width: 22px;
-max-width: 22px;
-font-size: 10px;
+.admin-table td:first-child { min-width: 22px; max-width: 28px; }
+.admin-table td:nth-child(2) { min-width: 28px; max-width: 32px; }
+.admin-table td:nth-child(3) { min-width: 45px; max-width: 55px; font-size: 9px; }
+.admin-table th:nth-child(n+4):not(:nth-last-child(-n+4)),
+.admin-table td:nth-child(n+4):not(:nth-last-child(-n+4)) {
+min-width: 16px; max-width: 22px; padding: 2px 1px;
 }
-/* チーム列 - 最小限に */
-.admin-table td:nth-child(2),
-.admin-table th:nth-child(2) { 
-width: 22px; 
-min-width: 22px;
-max-width: 22px;
-font-size: 10px;
-}
-/* 名前列 - コンパクトに */
-.admin-table td:nth-child(3),
-.admin-table th:nth-child(3) { 
-width: 50px; 
-min-width: 50px;
-max-width: 50px;
-text-align: left;
-padding-left: 3px;
-font-size: 10px;
-}
-/* 日付列 */
-.admin-table th:nth-child(n+4),
-.admin-table td:nth-child(n+4) {
-width: 22px;
-min-width: 22px;
-max-width: 24px;
-font-size: 10px;
+.admin-table th:nth-last-child(-n+4),
+.admin-table td:nth-last-child(-n+4) {
+min-width: 20px; max-width: 26px; font-weight: bold; background: #F0F0F0;
 }
 </style>
 </head>
@@ -441,61 +407,46 @@ font-size: 10px;
 </div>
 
 <div id="mainSection" class="container hidden">
-<h1 style="background: linear-gradient(135deg, #00897B 0%, #4DB6AC 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 28px;">シフト希望入力</h1>
+<h1>シフト希望入力</h1>
 <div id="welcomeMessage" style="text-align: center; margin-bottom: 20px;"></div>
 
-<div class="timer" style="background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%); border: none; border-radius: 12px; padding: 16px 20px; box-shadow: 0 2px 10px rgba(255, 193, 7, 0.2);">
-<div style="display: flex; align-items: center; gap: 8px; color: #F57C00;"><i class="fas fa-clock"></i> 締切まで残り時間</div>
-<div id="countdown" class="timer-display" style="font-size: 18px; color: #E65100;">計算中...</div>
+<div class="timer">
+<div>締切まで残り時間</div>
+<div id="countdown" class="timer-display">計算中...</div>
 </div>
 
 <div class="calendar-header">
-<button onclick="previousMonth()"><i class="fas fa-chevron-left"></i> 前月</button>
+<button onclick="previousMonth()">前月</button>
 <h2 id="currentMonth"></h2>
-<button onclick="nextMonth()">翌月 <i class="fas fa-chevron-right"></i></button>
+<button onclick="nextMonth()">翌月</button>
 </div>
 
 <div id="calendar"></div>
 
-<div style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); padding: 16px 20px; border-radius: 12px; margin: 20px 0; display: flex; align-items: center; gap: 12px;">
-<i class="fas fa-info-circle" style="font-size: 24px; color: #2E7D32;"></i>
-<div style="color: #1B5E20; font-size: 14px;">
-<strong>使い方:</strong> 下の希望種別を選択してから、カレンダーの日付をタップしてください
-</div>
-</div>
-
 <div class="request-buttons">
 <div class="request-button" onclick="setRequestType('休')" data-type="休">
-<span class="icon">🏠</span>
-<span class="label">休み希望</span>
+休み希望<br>（休）
 </div>
 <div class="request-button" onclick="setRequestType('年')" data-type="年">
-<span class="icon">🌴</span>
-<span class="label">年休希望</span>
+年休希望<br>（年）
 </div>
 <div class="request-button" onclick="setRequestType('出')" data-type="出">
-<span class="icon">✈️</span>
-<span class="label">出張</span>
+出張希望<br>（出）
 </div>
 <div class="request-button" onclick="setRequestType('日')" data-type="日">
-<span class="icon">☀️</span>
-<span class="label">日勤希望</span>
+日勤希望<br>（日）
 </div>
 <div class="request-button" onclick="setRequestType('特')" data-type="特">
-<span class="icon">⭐</span>
-<span class="label">特休希望</span>
+特休希望<br>（特）
 </div>
 <div class="request-button" onclick="setRequestType('AM')" data-type="AM">
-<span class="icon">🌅</span>
-<span class="label">午前休</span>
+午前休希望<br>（AM）
 </div>
 <div class="request-button" onclick="setRequestType('PM')" data-type="PM">
-<span class="icon">🌇</span>
-<span class="label">午後休</span>
+午後休み希望<br>（PM）
 </div>
 <div class="request-button" onclick="setRequestType('夏')" data-type="夏">
-<span class="icon">🏖️</span>
-<span class="label">夏休み</span>
+夏休み希望<br>（夏）
 </div>
 </div>
 
@@ -504,11 +455,9 @@ font-size: 10px;
 <div id="selectedDatesList"></div>
 </div>
 
-<button onclick="submitRequests()" id="submitButton" style="background: linear-gradient(135deg, #00897B 0%, #4DB6AC 100%); padding: 16px 32px; font-size: 16px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0, 137, 123, 0.4); margin-top: 20px;">
-<i class="fas fa-paper-plane" style="margin-right: 8px;"></i>希望を提出する
-</button>
+<button onclick="submitRequests()" id="submitButton">希望を提出</button>
 
-<div id="submissionStatus" class="selected-dates" style="margin-top: 20px;">
+<div id="submissionStatus" class="selected-dates" style="margin-top: 15px;">
 <h3>提出状況</h3>
 <div id="submissionStatusContent"></div>
 </div>
@@ -556,106 +505,6 @@ font-size: 10px;
 <strong style="color: #2E7D32;">※ ブラウザを閉じても、結果は保存されます。</strong>
 </p>
 
-<!-- ★★★ 制約設定パネル ★★★ -->
-<div id="constraint-settings" style="background: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-<h4 style="margin: 0; color: #333; font-size: 14px;">
-<i class="fas fa-sliders-h"></i> 制約設定
-</h4>
-<button id="constraint-toggle-btn" style="background: #757575; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
-<i class="fas fa-chevron-down"></i> 詳細を表示
-</button>
-</div>
-
-<div id="constraint-details" style="display: none;">
-<p style="font-size: 12px; color: #666; margin-bottom: 10px;">
-解が見つからない場合は、制約のチェックを外して再実行してください。
-</p>
-
-<!-- 人数・回数制約（重要） -->
-<div style="background: #FFF3E0; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-<strong style="font-size: 12px; color: #E65100;">⚠️ 人数・回数制約（外すと勤務表として不完全になる可能性）</strong>
-<div style="display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 11px; margin-top: 8px;">
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-night-count" checked>
-<span>準+深は7〜8回/月</span>
-</label>
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-staff-count" checked>
-<span>日勤・準夜・深夜の人数配置</span>
-</label>
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-team-balance" checked>
-<span>チームバランス（A/B人数）</span>
-</label>
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-leader-required" checked>
-<span>リーダー必須配置</span>
-</label>
-
-</div>
-</div>
-
-<!-- シフトパターン制約 -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-jun-kyuu-shin" checked>
-<span>準休深・深休準の禁止</span>
-</label>
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-kyuu-kyuu-shin" checked>
-<span>休休深の禁止</span>
-</label>
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-day-4-consecutive" checked>
-<span>日勤は4連続まで</span>
-</label>
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-night-interval" checked>
-<span>深夜間隔5日以上</span>
-</label>
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-jun-before-rest" checked>
-<span>準夜前の休みは1つまで</span>
-</label>
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-jun-to-shin" checked>
-<span>準夜→深夜の禁止</span>
-</label>
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-day-to-shin" checked>
-<span>日勤→深夜の禁止</span>
-</label>
-
-<label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-pattern-bonus" checked>
-<span>準準休深深休パターン推奨</span>
-</label>
-
-</div>
-
-<div style="margin-top: 10px; text-align: right;">
-<button id="reset-constraints-btn" style="background: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 5px;">
-<i class="fas fa-undo"></i> 全てオン
-</button>
-<button id="relax-constraints-btn" style="background: #FF9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">
-<i class="fas fa-bolt"></i> 緩和モード
-</button>
-</div>
-</div>
-</div>
-
 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
 <button id="generate-schedule-btn" style="background: #00897B; flex: 1;">
 <i class="fas fa-magic"></i> 新規作成
@@ -699,80 +548,6 @@ font-size: 10px;
 </div>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ============================================
-// ★★★ 制約設定関連の関数（グローバルスコープ） ★★★
-// ============================================
-
-function toggleConstraintPanel() {
-    const details = document.getElementById('constraint-details');
-    const btn = document.getElementById('constraint-toggle-btn');
-    if (!details || !btn) {
-        console.error('制約パネルの要素が見つかりません');
-        return;
-    }
-    if (details.style.display === 'none') {
-        details.style.display = 'block';
-        btn.innerHTML = '<i class="fas fa-chevron-up"></i> 詳細を隠す';
-    } else {
-        details.style.display = 'none';
-        btn.innerHTML = '<i class="fas fa-chevron-down"></i> 詳細を表示';
-    }
-}
-
-function resetConstraints() {
-    // 人数・回数制約
-    document.getElementById('constraint-night-count').checked = true;
-    document.getElementById('constraint-staff-count').checked = true;
-    document.getElementById('constraint-team-balance').checked = true;
-    document.getElementById('constraint-leader-required').checked = true;
-    // シフトパターン制約
-    document.getElementById('constraint-jun-kyuu-shin').checked = true;
-    document.getElementById('constraint-kyuu-kyuu-shin').checked = true;
-    document.getElementById('constraint-day-4-consecutive').checked = true;
-    document.getElementById('constraint-night-interval').checked = true;
-    document.getElementById('constraint-jun-before-rest').checked = true;
-    document.getElementById('constraint-jun-to-shin').checked = true;
-    document.getElementById('constraint-day-to-shin').checked = true;
-    document.getElementById('constraint-pattern-bonus').checked = true;
-}
-
-function relaxConstraints() {
-    // 人数・回数制約は維持
-    document.getElementById('constraint-night-count').checked = true;
-    document.getElementById('constraint-staff-count').checked = true;
-    document.getElementById('constraint-team-balance').checked = false;  // オフ
-    document.getElementById('constraint-leader-required').checked = false;  // オフ
-    // シフトパターン制約
-    document.getElementById('constraint-jun-kyuu-shin').checked = true;
-    document.getElementById('constraint-kyuu-kyuu-shin').checked = true;
-    document.getElementById('constraint-day-4-consecutive').checked = true;
-    document.getElementById('constraint-night-interval').checked = false;
-    document.getElementById('constraint-jun-before-rest').checked = false;
-    document.getElementById('constraint-jun-to-shin').checked = false;
-    document.getElementById('constraint-day-to-shin').checked = false;
-    document.getElementById('constraint-pattern-bonus').checked = false;
-    alert('緩和モードに設定しました。チームバランス・リーダー必須・深夜間隔等をオフにしました。');
-}
-
-function getConstraintSettings() {
-    return {
-        // 人数・回数制約
-        nightCount: document.getElementById('constraint-night-count')?.checked ?? true,
-        staffCount: document.getElementById('constraint-staff-count')?.checked ?? true,
-        teamBalance: document.getElementById('constraint-team-balance')?.checked ?? true,
-        leaderRequired: document.getElementById('constraint-leader-required')?.checked ?? true,
-        // シフトパターン制約
-        junKyuuShin: document.getElementById('constraint-jun-kyuu-shin')?.checked ?? true,
-        kyuuKyuuShin: document.getElementById('constraint-kyuu-kyuu-shin')?.checked ?? true,
-        day4Consecutive: document.getElementById('constraint-day-4-consecutive')?.checked ?? true,
-        nightInterval: document.getElementById('constraint-night-interval')?.checked ?? true,
-        junBeforeRest: document.getElementById('constraint-jun-before-rest')?.checked ?? true,
-        junToShin: document.getElementById('constraint-jun-to-shin')?.checked ?? true,
-        dayToShin: document.getElementById('constraint-day-to-shin')?.checked ?? true,
-        patternBonus: document.getElementById('constraint-pattern-bonus')?.checked ?? true
-    };
-}
-
 // ============================================
 // Firebaseの設定
 // ============================================
@@ -879,10 +654,7 @@ const staffRequests = requestsData[staffMember.uid];
 const staffRequestDates = staffRequests ? staffRequests.dates : {};
 
 for (let d = 1; d <= daysInMonth; d++) {
-let shift = staffSchedule.shifts[d] || staffSchedule.shifts[String(d)] || '休';
-
-// ★★★ 「夜」を「深」に変換（互換性対応） ★★★
-if (shift === '夜') shift = '深';
+const shift = staffSchedule.shifts[d] || staffSchedule.shifts[String(d)] || '休';
 
 const date = new Date(year, month - 1, d);
 const dayOfWeek = date.getDay();
@@ -924,15 +696,15 @@ function generatePersonalCountTable(schedule, staff) {
 let table = '<table class="schedule-table" style="font-size: 11px;">';
 
 table += '<tr>';
-table += '<th>職員名</th>';
-table += '<th>チーム</th>';
-table += '<th style="background: #E8F5E9;">日勤</th>';
-table += '<th style="background: #E1F5FE;">準夜</th>';
-table += '<th style="background: #E8EAF6;">深夜</th>';
-table += '<th style="background: #FFF3E0;">準+深<br>合計</th>';
-table += '<th style="background: #F5F5F5;">休み</th>';
-table += '<th style="background: #E3F2FD;">年休等</th>';
-table += '<th style="background: #FFEBEE;">合計</th>';
+table += '<th style="color: #333;">職員名</th>';
+table += '<th style="color: #333;">チーム</th>';
+table += '<th style="background: #E8F5E9; color: #333;">日勤</th>';
+table += '<th style="background: #E1F5FE; color: #333;">準夜</th>';
+table += '<th style="background: #E8EAF6; color: #333;">夜勤</th>';
+table += '<th style="background: #FFF3E0; color: #333;">準+夜<br>合計</th>';
+table += '<th style="background: #F5F5F5; color: #333;">休み</th>';
+table += '<th style="background: #E3F2FD; color: #333;">年休等</th>';
+table += '<th style="background: #FFEBEE; color: #333;">合計</th>';
 table += '</tr>';
 
 const teamAStaff = staff.filter(function(s) {
@@ -947,7 +719,7 @@ return s.originalId !== 31 && s.team === 'B';
 return (a.originalId || 0) - (b.originalId || 0);
 });
 
-let teamATotal = { 日: 0, 準: 0, 深: 0, 休: 0, その他: 0 };
+let teamATotal = { 日: 0, 準: 0, 夜: 0, 休: 0, その他: 0 };
 
 teamAStaff.forEach(function(staffMember) {
 const staffSchedule = schedule[staffMember.uid];
@@ -958,7 +730,7 @@ table += generatePersonalCountRow(staffMember, staffSchedule, teamATotal);
 
 table += generateSubtotalRow('チームA 小計', teamATotal, '#E3F2FD');
 
-let teamBTotal = { 日: 0, 準: 0, 深: 0, 休: 0, その他: 0 };
+let teamBTotal = { 日: 0, 準: 0, 夜: 0, 休: 0, その他: 0 };
 
 teamBStaff.forEach(function(staffMember) {
 const staffSchedule = schedule[staffMember.uid];
@@ -972,7 +744,7 @@ table += generateSubtotalRow('チームB 小計', teamBTotal, '#FFE0B2');
 let grandTotal = {
 日: teamATotal.日 + teamBTotal.日,
 準: teamATotal.準 + teamBTotal.準,
-深: teamATotal.深 + teamBTotal.深,
+夜: teamATotal.夜 + teamBTotal.夜,
 休: teamATotal.休 + teamBTotal.休,
 その他: teamATotal.その他 + teamBTotal.その他
 };
@@ -997,8 +769,7 @@ row += '<td style="color: ' + teamColor + '; font-weight: bold;">' + staffMember
 
 const dayCount = staffSchedule.counts['日'] || 0;
 const eveningCount = staffSchedule.counts['準'] || 0;
-// ★★★ 「夜」も「深」としてカウント（互換性対応） ★★★
-const nightCount = (staffSchedule.counts['深'] || 0) + (staffSchedule.counts['夜'] || 0);
+const nightCount = staffSchedule.counts['夜'] || 0;
 const nightTotal = eveningCount + nightCount;
 const restCount = staffSchedule.counts['休'] || 0;
 
@@ -1014,7 +785,7 @@ const total = dayCount + eveningCount + nightCount + restCount + otherCount;
 if (teamTotal) {
 teamTotal.日 += dayCount;
 teamTotal.準 += eveningCount;
-teamTotal.深 += nightCount;
+teamTotal.夜 += nightCount;
 teamTotal.休 += restCount;
 teamTotal.その他 += otherCount;
 }
@@ -1035,8 +806,8 @@ return row;
 }
 
 function generateSubtotalRow(label, totals, bgColor, isBold) {
-const nightTotal = totals.準 + totals.深;
-const grandTotal = totals.日 + totals.準 + totals.深 + totals.休 + totals.その他;
+const nightTotal = totals.準 + totals.夜;
+const grandTotal = totals.日 + totals.準 + totals.夜 + totals.休 + totals.その他;
 
 const fontWeight = isBold ? 'font-weight: bold;' : '';
 
@@ -1044,7 +815,7 @@ let row = '<tr>';
 row += '<td colspan="2" style="text-align: center; background: ' + bgColor + '; ' + fontWeight + '">' + label + '</td>';
 row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.日 + '</td>';
 row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.準 + '</td>';
-row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.深 + '</td>';
+row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.夜 + '</td>';
 row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + nightTotal + '</td>';
 row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.休 + '</td>';
 row += '<td style="background: ' + bgColor + '; ' + fontWeight + '">' + totals.その他 + '</td>';
@@ -1058,24 +829,13 @@ function generateCountTable(schedule, staff, daysInMonth) {
 const year = currentMonth.getFullYear();
 const month = currentMonth.getMonth() + 1;
 
-// ★★★ デバッグ: データ形式を確認 ★★★
-console.log("=== generateCountTable デバッグ ===");
-console.log("staff数:", staff.length);
-console.log("schedule keys:", Object.keys(schedule).slice(0, 3));
-if (staff.length > 0 && schedule[staff[0].uid]) {
-  console.log("最初のスタッフUID:", staff[0].uid);
-  console.log("最初のスタッフのschedule:", schedule[staff[0].uid]);
-  console.log("shifts:", schedule[staff[0].uid].shifts);
-  console.log("shifts keys:", Object.keys(schedule[staff[0].uid].shifts || {}).slice(0, 5));
-}
-
 const dailyCounts = {};
 
 for (let d = 1; d <= daysInMonth; d++) {
 dailyCounts[d] = {
 日: { A: 0, B: 0, total: 0 },
 準: { A: 0, B: 0, total: 0 },
-深: { A: 0, B: 0, total: 0 }
+夜: { A: 0, B: 0, total: 0 }
 };
 }
 
@@ -1090,12 +850,9 @@ if (!staffSchedule) return;
 const team = staffMember.team;
 
 for (let d = 1; d <= daysInMonth; d++) {
-let shift = staffSchedule.shifts[d] || staffSchedule.shifts[String(d)];
+const shift = staffSchedule.shifts[d] || staffSchedule.shifts[String(d)];
 
-// ★★★ 「夜」を「深」に変換（互換性対応） ★★★
-if (shift === '夜') shift = '深';
-
-if (shift === '日' || shift === '準' || shift === '深') {
+if (shift === '日' || shift === '準' || shift === '夜') {
 if (team === 'A' || team === 'B') {
 dailyCounts[d][shift][team]++;
 dailyCounts[d][shift].total++;
@@ -1177,23 +934,23 @@ table += '<td style="background: ' + bgColor + '; font-weight: bold;">' + count 
 table += '</tr>';
 
 // 夜勤 A
-table += '<tr><td style="background: #E8EAF6; font-weight: bold;">深夜 A</td>';
+table += '<tr><td style="background: #E8EAF6; font-weight: bold;">夜勤 A</td>';
 for (let d = 1; d <= daysInMonth; d++) {
-table += '<td>' + dailyCounts[d].深.A + '</td>';
+table += '<td>' + dailyCounts[d].夜.A + '</td>';
 }
 table += '</tr>';
 
 // 夜勤 B
-table += '<tr><td style="background: #E8EAF6; font-weight: bold;">深夜 B</td>';
+table += '<tr><td style="background: #E8EAF6; font-weight: bold;">夜勤 B</td>';
 for (let d = 1; d <= daysInMonth; d++) {
-table += '<td>' + dailyCounts[d].深.B + '</td>';
+table += '<td>' + dailyCounts[d].夜.B + '</td>';
 }
 table += '</tr>';
 
 // 夜勤 計
-table += '<tr><td style="background: #9FA8DA; font-weight: bold;">深夜 計</td>';
+table += '<tr><td style="background: #9FA8DA; font-weight: bold;">夜勤 計</td>';
 for (let d = 1; d <= daysInMonth; d++) {
-const count = dailyCounts[d].深.total;
+const count = dailyCounts[d].夜.total;
 const bgColor = count === 3 ? '#C8E6C9' : (count < 3 ? '#FFCDD2' : '#FFE082');
 table += '<td style="background: ' + bgColor + '; font-weight: bold;">' + count + '</td>';
 }
@@ -1228,12 +985,7 @@ console.log("スケジュールの月を設定:", currentScheduleData.monthKey);
 
 currentEditingDraft = draftKey;
 const draft = currentScheduleData.drafts[draftKey];
-// ★★★ 修正: schedule.scheduleの二重構造に対応 ★★★
-let scheduleToEdit = draft.schedule;
-if (draft.schedule && draft.schedule.schedule) {
-  scheduleToEdit = draft.schedule.schedule;
-}
-currentEditingSchedule = JSON.parse(JSON.stringify(scheduleToEdit));
+currentEditingSchedule = JSON.parse(JSON.stringify(draft.schedule));
 
 console.log("勤務交換モード有効化:", draftKey);
 
@@ -1335,10 +1087,10 @@ onclick="directShiftChange('${staff.uid}', ${date}, '準')"
 style="padding: 12px; border: 2px solid #03A9F4; border-radius: 8px; background: ${currentShift === '準' ? '#E1F5FE' : 'white'}; color: #0277BD; font-weight: bold; cursor: pointer;">
 準夜
 </button>
-<button class="shift-select-btn ${currentShift === '深' ? 'active' : ''}"
-onclick="directShiftChange('${staff.uid}', ${date}, '深')"
-style="padding: 12px; border: 2px solid #3F51B5; border-radius: 8px; background: ${currentShift === '深' ? '#E8EAF6' : 'white'}; color: #303F9F; font-weight: bold; cursor: pointer;">
-深夜
+<button class="shift-select-btn ${currentShift === '夜' ? 'active' : ''}"
+onclick="directShiftChange('${staff.uid}', ${date}, '夜')"
+style="padding: 12px; border: 2px solid #3F51B5; border-radius: 8px; background: ${currentShift === '夜' ? '#E8EAF6' : 'white'}; color: #303F9F; font-weight: bold; cursor: pointer;">
+夜勤
 </button>
 <button class="shift-select-btn ${currentShift === '休' ? 'active' : ''}"
 onclick="directShiftChange('${staff.uid}', ${date}, '休')"
@@ -1510,21 +1262,21 @@ if (shiftB && shiftB !== '休') {
 result.canExchange = true;
 
 const staffANightCount = currentEditingSchedule[staffA.uid].counts['準'] +
-currentEditingSchedule[staffA.uid].counts['深'];
+currentEditingSchedule[staffA.uid].counts['夜'];
 const staffBNightCount = currentEditingSchedule[staffB.uid].counts['準'] +
-currentEditingSchedule[staffB.uid].counts['深'];
+currentEditingSchedule[staffB.uid].counts['夜'];
 
-const shiftAIsNight = (shiftA === '準' || shiftA === '深');
-const shiftBIsNight = (shiftB === '準' || shiftB === '深');
+const shiftAIsNight = (shiftA === '準' || shiftA === '夜');
+const shiftBIsNight = (shiftB === '準' || shiftB === '夜');
 
 if (shiftAIsNight && !shiftBIsNight && staffBNightCount >= 8) {
 result.canExchange = false;
-result.warning = "深夜回数上限超過";
+result.warning = "夜勤回数上限超過";
 }
 
 if (!shiftAIsNight && shiftBIsNight && staffANightCount >= 8) {
 result.canExchange = false;
-result.warning = "深夜回数上限超過";
+result.warning = "夜勤回数上限超過";
 }
 }
 
@@ -1665,7 +1417,7 @@ Object.values(staffSchedule.shifts).forEach(function(shift) {
 if (!['休', '年', '出', '特', 'AM', 'PM', '夏'].includes(shift)) {
 workCount++;
 }
-if (shift === '準' || shift === '深') {
+if (shift === '準' || shift === '夜') {
 nightCount++;
 }
 });
@@ -1714,7 +1466,7 @@ score -= Math.abs(wc - avgWork) * WEIGHTS.WORK_FAIRNESS;
 });
 }
 
-// 深夜回数公平性
+// 夜勤回数公平性
 if (nightCounts.length > 0) {
 const avgNight = 6;
 nightCounts.forEach(function(nc) {
@@ -2704,22 +2456,6 @@ closeSwapModal();
 
 console.log('システム初期化完了');
 
-// ★★★ 制約設定ボタンのイベントリスナー ★★★
-const constraintToggleBtn = document.getElementById('constraint-toggle-btn');
-if (constraintToggleBtn) {
-    constraintToggleBtn.addEventListener('click', toggleConstraintPanel);
-}
-
-const resetConstraintsBtn = document.getElementById('reset-constraints-btn');
-if (resetConstraintsBtn) {
-    resetConstraintsBtn.addEventListener('click', resetConstraints);
-}
-
-const relaxConstraintsBtn = document.getElementById('relax-constraints-btn');
-if (relaxConstraintsBtn) {
-    relaxConstraintsBtn.addEventListener('click', relaxConstraints);
-}
-
 // ============================================
 // GAS呼び出しと結果表示
 // ============================================
@@ -2865,27 +2601,8 @@ generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ジョブを登�
 resultsArea.innerHTML = '<p style="color: #00897B;">処理を開始しています...</p>';
 
 try {
-// 制約設定を取得
-const constraints = getConstraintSettings();
-const constraintParams = 
-// 人数・回数制約
-'&c_nightCount=' + (constraints.nightCount ? '1' : '0') +
-'&c_staffCount=' + (constraints.staffCount ? '1' : '0') +
-'&c_teamBalance=' + (constraints.teamBalance ? '1' : '0') +
-'&c_leaderRequired=' + (constraints.leaderRequired ? '1' : '0') +
-// シフトパターン制約
-'&c_junKyuuShin=' + (constraints.junKyuuShin ? '1' : '0') +
-'&c_kyuuKyuuShin=' + (constraints.kyuuKyuuShin ? '1' : '0') +
-'&c_day4Consecutive=' + (constraints.day4Consecutive ? '1' : '0') +
-'&c_nightInterval=' + (constraints.nightInterval ? '1' : '0') +
-'&c_junBeforeRest=' + (constraints.junBeforeRest ? '1' : '0') +
-'&c_junToShin=' + (constraints.junToShin ? '1' : '0') +
-'&c_dayToShin=' + (constraints.dayToShin ? '1' : '0') +
-'&c_patternBonus=' + (constraints.patternBonus ? '1' : '0');
-
-const createUrl = GAS_API_URL + '?action=create&month=' + monthKey + constraintParams + '&v=' + new Date().getTime();
+const createUrl = GAS_API_URL + '?action=create&month=' + monthKey + '&v=' + new Date().getTime();
 console.log("ジョブ登録URL:", createUrl);
-console.log("制約設定:", constraints);
 
 const createResult = await callGASWithJSONP(createUrl);
 console.log("ジョブ登録結果:", createResult);
@@ -3064,9 +2781,9 @@ html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">�
 html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.work_fairness_penalty + '点</td></tr>';
 }
 
-// 深夜回数ペナルティ
+// 夜勤回数ペナルティ
 if (breakdown.night_fairness_penalty) {
-html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">🌙 深夜回数の偏り</td>';
+html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">🌙 夜勤回数の偏り</td>';
 html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.night_fairness_penalty + '点</td></tr>';
 }
 
@@ -3133,13 +2850,7 @@ return;
 }
 
 // ★CSVエクスポート用にグローバル変数に保存
-// ★★★ 修正: schedule.scheduleの二重構造に対応 ★★★
-let actualSchedule = draft.schedule;
-if (draft.schedule && draft.schedule.schedule) {
-  console.log("二重構造を検出: draft.schedule.schedule を使用");
-  actualSchedule = draft.schedule.schedule;
-}
-window.currentScheduleForCSV = actualSchedule;
+window.currentScheduleForCSV = draft.schedule;
 window.currentStaffListForCSV = staffListForAdmin;
 
 // 結果ヘッダー
@@ -3165,11 +2876,7 @@ const scoreBreakdown = data.score_breakdown || draft.score_breakdown || null;
 const finalScore = score || data.score || draft.score || 0;
 
 statusHtml += '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">';
-statusHtml += '<h4 style="margin-top: 0; color: #333;">📊 スコア計算の内訳</h4>';
-statusHtml += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
-
-// 希望充足（REQUEST_WEIGHT = 2）
-const requestScore = scoreBreakdown ? scoreBreakdown.request_score : (fulfilledReqs * 2);
+statusHtml += '<h4 style="margin-top: 0; color: #333;">📊 スコア計算の内訳<s * 2);
 statusHtml += '<tr style="border-bottom: 1px solid #ddd;">';
 statusHtml += '<td style="padding: 8px;">✅ 希望充足ボーナス (' + fulfilledReqs + '/' + totalReqs + '件 × 2点)</td>';
 statusHtml += '<td style="padding: 8px; text-align: right; color: #4CAF50; font-weight: bold;">+' + requestScore + '点</td>';
@@ -3183,10 +2890,10 @@ statusHtml += '<td style="padding: 8px; text-align: right; color: #F44336; font-
 statusHtml += '</tr>';
 }
 
-// 深夜回数ペナルティ
+// 夜勤回数ペナルティ
 if (scoreBreakdown && scoreBreakdown.night_fairness_penalty !== 0) {
 statusHtml += '<tr style="border-bottom: 1px solid #ddd;">';
-statusHtml += '<td style="padding: 8px;">🌙 深夜回数の偏りペナルティ</td>';
+statusHtml += '<td style="padding: 8px;">🌙 夜勤回数の偏りペナルティ</td>';
 statusHtml += '<td style="padding: 8px; text-align: right; color: #F44336; font-weight: bold;">' + scoreBreakdown.night_fairness_penalty + '点</td>';
 statusHtml += '</tr>';
 }
@@ -3217,7 +2924,7 @@ statusHtml += '<summary style="cursor: pointer; font-size: 12px; color: #666;">�
 statusHtml += '<div style="margin-top: 8px; padding: 10px; background: #fff; border-radius: 4px; font-size: 12px; color: #555;">';
 statusHtml += '<p style="margin: 5px 0;"><strong>希望充足:</strong> 叶った希望数 × 2点</p>';
 statusHtml += '<p style="margin: 5px 0;"><strong>勤務日数ペナルティ:</strong> |実際の勤務日数 - 20日| × 1点（各スタッフごと）</p>';
-statusHtml += '<p style="margin: 5px 0;"><strong>深夜回数ペナルティ:</strong> |実際の深夜回数 - 6回| × 1点（各スタッフごと）</p>';
+statusHtml += '<p style="margin: 5px 0;"><strong>夜勤回数ペナルティ:</strong> |実際の夜勤回数 - 6回| × 1点（各スタッフごと）</p>';
 statusHtml += '<p style="margin: 5px 0;"><strong>日勤専従者の希望:</strong> 叶った希望 × 50点（通常より高優先）</p>';
 statusHtml += '</div>';
 statusHtml += '</details>';
@@ -3229,7 +2936,7 @@ resultsArea.innerHTML = statusHtml;
 const scoreBreakdownHtml = formatScoreBreakdown(draft);
 resultsArea.innerHTML += scoreBreakdownHtml;
 
-if (!draft.schedule && !actualSchedule) {
+if (!draft.schedule) {
 resultsArea.innerHTML += '<p style="color: red;">スケジュール詳細データがありません</p>';
 return;
 }
@@ -3285,8 +2992,7 @@ draftDiv.appendChild(warningDiv);
 
 const scheduleDiv = document.createElement('div');
 scheduleDiv.style = "padding: 15px; overflow-x: auto;";
-// ★★★ 修正: actualScheduleを使用 ★★★
-scheduleDiv.innerHTML = generateScheduleTableHTML(actualSchedule, monthKey, staffListForAdmin) +
+scheduleDiv.innerHTML = generateScheduleTableHTML(draft.schedule, monthKey, staffListForAdmin) +
 '<button id="confirm-draft1" style="background: #1976D2; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px;">' +
 '<i class="fas fa-check"></i> この案で確定する</button>';
 
@@ -3353,11 +3059,6 @@ showMessage('確定に失敗しました: ' + error.message, 'error');
 
 // CSVエクスポート機能
 function exportScheduleToCSV() {
-console.log('=== CSVエクスポート開始 ===');
-console.log('currentScheduleForCSV:', window.currentScheduleForCSV);
-console.log('currentStaffListForCSV:', window.currentStaffListForCSV);
-console.log('currentMonthKey:', window.currentMonthKey);
-
 if (!window.currentScheduleForCSV || !window.currentStaffListForCSV) {
 alert('エクスポートするスケジュールがありません。\n先に「保存済みを読み込む」でスケジュールを表示してください。');
 return;
@@ -3367,16 +3068,13 @@ const scheduleData = window.currentScheduleForCSV;
 const staffList = window.currentStaffListForCSV;
 const monthKey = window.currentMonthKey || new Date().toISOString().slice(0, 7);
 
-console.log('scheduleData keys:', Object.keys(scheduleData));
-console.log('staffList length:', staffList.length);
-
 const [year, month] = monthKey.split('-').map(Number);
 const daysInMonth = new Date(year, month, 0).getDate();
 const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
 let csv = '\uFEFF名前,チーム';
 for (let d = 1; d <= daysInMonth; d++) csv += ',' + d;
-csv += ',日勤,準夜,深夜,休み\n';
+csv += ',日勤,準夜,夜勤,休み\n';
 
 csv += '曜日,';
 for (let d = 1; d <= daysInMonth; d++) {
@@ -3387,43 +3085,27 @@ csv += ',,,\n';
 staffList.forEach(staff => {
 const uid = staff.uid || staff.id;
 const s = scheduleData[uid];
-if (!s || !s.shifts) {
-console.log('スキップ:', staff.name, uid, s);
-return;
-}
+if (!s || !s.shifts) return;
 
 csv += '"' + (staff.name || '').replace(/"/g, '""') + '",' + (staff.team || '-');
-const counts = { '日': 0, '準': 0, '深': 0, '休': 0 };
+const counts = { '日': 0, '準': 0, '夜': 0, '休': 0 };
 
 for (let d = 1; d <= daysInMonth; d++) {
 const shift = s.shifts[d] || s.shifts[String(d)] || '-';
 csv += ',' + shift;
 if (shift === '日') counts['日']++;
 else if (shift === '準') counts['準']++;
-else if (shift === '深') counts['深']++;
+else if (shift === '夜') counts['夜']++;
 else if (['休','年','出','特','AM','PM','夏'].includes(shift)) counts['休']++;
 }
-csv += ',' + counts['日'] + ',' + counts['準'] + ',' + counts['深'] + ',' + counts['休'] + '\n';
+csv += ',' + counts['日'] + ',' + counts['準'] + ',' + counts['夜'] + ',' + counts['休'] + '\n';
 });
 
-console.log('CSV作成完了, 長さ:', csv.length);
-
-try {
 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-const url = URL.createObjectURL(blob);
 const link = document.createElement('a');
-link.setAttribute('href', url);
-link.setAttribute('download', '勤務表_' + monthKey + '.csv');
-link.style.visibility = 'hidden';
-document.body.appendChild(link);
+link.href = URL.createObjectURL(blob);
+link.download = '勤務表_' + monthKey + '.csv';
 link.click();
-document.body.removeChild(link);
-URL.revokeObjectURL(url);
-console.log('CSVダウンロード実行完了');
-} catch (e) {
-console.error('CSVダウンロードエラー:', e);
-alert('CSVのダウンロードに失敗しました: ' + e.message);
-}
 }
 
 } catch (error) {
