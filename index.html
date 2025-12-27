@@ -3012,7 +3012,7 @@ generateBtn.innerHTML = '<i class="fas fa-magic"></i> 勤務表の作成を開�
 
 
 async function pollJobStatus(jobId, monthKey) {
-const maxAttempts = 180; // 15分 (5秒×180)
+const maxAttempts = 240; // 20分 (5秒×240)
 const interval = 5000;
 let attempt = 0;
 
@@ -3175,9 +3175,18 @@ html += '</div></div></div>';
 return html;
 }
 
-function displayScheduleResults(data, monthKey) {
+async function displayScheduleResults(data, monthKey) {
 console.log("=== displayScheduleResults 開始 ===");
 console.log("受信データ:", data);
+
+// ★★★ 希望データを再読み込み ★★★
+try {
+    const requestsDoc = await firestore.collection('requests').doc(monthKey).get({ source: 'server' });
+    allRequestsForAdmin = requestsDoc.exists ? requestsDoc.data() : {};
+    console.log("希望データ再読み込み完了:", Object.keys(allRequestsForAdmin).length, "名分");
+} catch (e) {
+    console.warn("希望データ読み込みエラー（続行）:", e);
+}
 
 currentScheduleData = data;
 
