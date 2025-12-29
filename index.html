@@ -1181,9 +1181,25 @@ const pmCount = counts['PM'] || 0;
 const kp4Count = counts['ケP4'] || 0;
 const k7Count = counts['ケ7'] || 0;
 
+// ★★★ 合計 = 日 + 準 + 深 + 法休 + 平日の(年・特・夏) + 出・AM・PM・ケP4・ケ7 ★★★
+// 法休には「休」+「土日祝日の年・特・夏」が含まれる
+// 平日の年・特・夏は別途カウント
+
+// 平日の年・特・夏をカウント
+let weekdaySpecialCount = 0;
+if (staffSchedule.shifts) {
+    Object.entries(staffSchedule.shifts).forEach(function([dayStr, shift]) {
+        const day = parseInt(dayStr);
+        if ((shift === '年' || shift === '特' || shift === '夏') && 
+            weekendHolidaySet && !weekendHolidaySet.has(day)) {
+            weekdaySpecialCount++;
+        }
+    });
+}
+
+// 合計 = 日 + 準 + 深 + 法休 + 平日特休 + 勤務扱い（出・AM・PM・ケP4・ケ7）
 const total = dayCount + eveningCount + nightCount + legalRestCount + 
-              yearCount + specialCount + summerCount + tripCount + 
-              amCount + pmCount + kp4Count + k7Count;
+              weekdaySpecialCount + tripCount + amCount + pmCount + kp4Count + k7Count;
 
 // ★★★ チーム合計に加算 ★★★
 if (teamTotal) {
