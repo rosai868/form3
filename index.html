@@ -974,10 +974,30 @@ cellStyle = 'background: #F4F9FF;';
 
 // 変更後
 const requestedShift = staffRequestDates[dateString] || staffRequestDates[String(d)];
-// ★赤枠条件: 希望と異なる かつ 実際のシフトが休み系以外の場合のみ
-const isRestShift = ['休', '年', '出', '特', 'AM', 'PM', '夏', 'ケP4', 'ケ7'].includes(shift);
-if (requestedShift && requestedShift !== shift && !isRestShift) {
-cellStyle += ' border: 3px solid #D32F2F; box-sizing: border-box;';
+
+// ★★★ 赤枠条件: Cloud Runの警告ロジックと完全一致 ★★★
+let showRedBorder = false;
+if (requestedShift && requestedShift !== shift) {
+    // 休み希望（年・特・夏・休）の場合
+    const isRestRequest = ['休', '年', '特', '夏'].includes(requestedShift);
+    const actualIsRest = ['休', '年', '特', '夏'].includes(shift);
+    
+    // 勤務希望（日・出・AM・PM・ケP4・ケ7）の場合
+    const isWorkRequest = ['日', '出', 'AM', 'PM', 'ケP4', 'ケ7'].includes(requestedShift);
+    const actualIsWork = ['日', '出', 'AM', 'PM', 'ケP4', 'ケ7'].includes(shift);
+    
+    // 休み希望なのに実際が休み系でない → 赤枠
+    if (isRestRequest && !actualIsRest) {
+        showRedBorder = true;
+    }
+    // 勤務希望なのに実際が勤務系でない → 赤枠
+    if (isWorkRequest && !actualIsWork) {
+        showRedBorder = true;
+    }
+}
+
+if (showRedBorder) {
+    cellStyle += ' border: 3px solid #D32F2F; box-sizing: border-box;';
 }
 
 // ★★★ パターン枠を追加 ★★★
@@ -1012,6 +1032,8 @@ const month = currentMonth.getMonth() + 1;
 const daysInMonth = new Date(year, month, 0).getDate();
 
 let legalRestDays = 0;
+const weekendHolidaySet = new Set();  // ★★★ 土日祝日のセット ★★★
+
 for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month - 1, d);
     const dateStr = year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0');
@@ -1019,8 +1041,12 @@ for (let d = 1; d <= daysInMonth; d++) {
     const isHoliday = holidays[dateStr];
     if (isWeekend || isHoliday) {
         legalRestDays++;
+        weekendHolidaySet.add(d);  // ★★★ セットに追加 ★★★
     }
 }
+
+// ★★★ 希望データを取得 ★★★
+const requestsData = allRequestsForAdmin || {};
 
 let table = '<table class="schedule-table" style="font-size: 11px;">';
 
@@ -1032,7 +1058,7 @@ table += '<th style="background: #E8F5E9; color: #333;">日</th>';
 table += '<th style="background: #E1F5FE; color: #333;">準</th>';
 table += '<th style="background: #E8EAF6; color: #333;">深</th>';
 table += '<th style="background: #FFF3E0; color: #333;">準+深</th>';
-table += '<th style="background: #FFEBEE; color: #333;" title="法定休日（年・特・夏を除く純粋な休み）">法休</th>';
+table += '<th style="background: #FFEBEE; color: #333;" title="法定休日（平日の年・特・夏を除く）">法休</th>';
 table += '<th style="background: #BBDEFB; color: #333;">年</th>';
 table += '<th style="background: #C8E6C9; color: #333;">特</th>';
 table += '<th style="background: #FFE0B2; color: #333;">夏</th>';
@@ -1063,7 +1089,7 @@ teamAStaff.forEach(function(staffMember) {
     const staffSchedule = schedule[staffMember.uid];
     if (!staffSchedule) return;
     
-    const result = generatePersonalCountRow(staffMember, staffSchedule, teamATotal, legalRestDays);
+    const result = generatePersonalCountRow(staffMember, staffSchedule, teamATotal, legalRestDays, weekendHolidaySet, requestsData);
     table += result.row;
     if (result.hasError) teamAErrors++;
 });
@@ -1077,7 +1103,7 @@ teamBStaff.forEach(function(staffMember) {
     const staffSchedule = schedule[staffMember.uid];
     if (!staffSchedule) return;
     
-    const result = generatePersonalCountRow(staffMember, staffSchedule, teamBTotal, legalRestDays);
+    const result = generatePersonalCountRow(staffMember, staffSchedule, teamBTotal, legalRestDays, weekendHolidaySet, requestsData);
     table += result.row;
     if (result.hasError) teamBErrors++;
 });
@@ -1107,7 +1133,7 @@ if (totalErrors > 0) {
 return table;
 }
 
-function generatePersonalCountRow(staffMember, staffSchedule, teamTotal, legalRestDays) {
+function generatePersonalCountRow(staffMember, staffSchedule, teamTotal, legalRestDays, weekendHolidaySet, requestsData) {
 let row = '<tr>';
 
 let nameDisplay = staffMember.name;
@@ -1127,12 +1153,21 @@ const nightCount = (counts['深'] || 0) + (counts['夜'] || 0);  // 互換性対
 const nightTotal = eveningCount + nightCount;
 
 // ★★★ 法定休日（純粋な「休」のみ）を計算 ★★★
-// scheduleから直接「休」の数を数える（年・特・夏・出・AM・PM・ケP4・ケ7を除く）
+// 「休」シフト + 土日祝日の年・特・夏
+// 平日の年・特・夏は法定休日にカウントしない
 let legalRestCount = 0;
+const staffRequests = requestsData && requestsData[staffMember.uid] ? requestsData[staffMember.uid].dates || {} : {};
+
 if (staffSchedule.shifts) {
-    Object.values(staffSchedule.shifts).forEach(function(shift) {
+    Object.entries(staffSchedule.shifts).forEach(function([dayStr, shift]) {
+        const day = parseInt(dayStr);
         if (shift === '休') {
             legalRestCount++;
+        } else if (shift === '年' || shift === '特' || shift === '夏') {
+            // 土日祝日の年・特・夏は法定休日としてカウント
+            if (weekendHolidaySet && weekendHolidaySet.has(day)) {
+                legalRestCount++;
+            }
         }
     });
 }
