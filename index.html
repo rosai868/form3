@@ -3148,70 +3148,87 @@ generateBtn.innerHTML = '<i class="fas fa-magic"></i> 勤務表の作成を開�
 
 
 async function pollJobStatus(jobId, monthKey) {
-const maxAttempts = 240; // 20分 (5秒×240)
-const interval = 5000;
-let attempt = 0;
-
-// ★OR-Tools用のシンプルなプログレスUI
-showSimpleProgressUI();
-
-while (attempt < maxAttempts) {
-attempt++;
-
-try {
-const statusUrl = GAS_API_URL + '?action=checkJob&jobId=' + jobId + '&v=' + new Date().getTime();
-const statusResult = await callGASWithJSONP(statusUrl);
-
-console.log("ジョブ状態:", statusResult);
-
-if (!statusResult.success) {
-throw new Error("ジョブ状態の確認に失敗しました");
+  const maxAttempts = 120; // 10分 (5秒×120)
+  const interval = 5000;
+  let attempt = 0;
+  
+  // ★開始時刻を記録（新しい結果かどうかの判定用）
+  const startTime = new Date();
+  
+  // ★OR-Tools用のシンプルなプログレスUI
+  showSimpleProgressUI();
+  
+  while (attempt < maxAttempts) {
+    attempt++;
+    
+    try {
+      // ★★★ 方法1: Firestoreのschedulesを直接チェック ★★★
+      const scheduleDoc = await db.collection('schedules').doc(monthKey).get();
+      
+      if (scheduleDoc.exists) {
+        const data = scheduleDoc.data();
+        
+        // updatedAtを確認
+        let updatedAt = null;
+        if (data.updatedAt) {
+          updatedAt = data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt);
+        }
+        
+        // 開始時刻より後に更新されていれば新しい結果
+        if (updatedAt && updatedAt > startTime) {
+          console.log("✅ 新しいスケジュールを検出！");
+          console.log("  updatedAt:", updatedAt);
+          console.log("  startTime:", startTime);
+          
+          updateSimpleProgressUI(100, '完了しました！');
+          
+          // スケジュールデータを返す
+          return data;
+        }
+      }
+      
+      // ★★★ 方法2: GAS経由でJobQueueもチェック（フォールバック）★★★
+      try {
+        const statusUrl = GAS_API_URL + '?action=checkJob&jobId=' + jobId + '&v=' + new Date().getTime();
+        const statusResult = await callGASWithJSONP(statusUrl);
+        
+        if (statusResult.success && statusResult.status === "completed") {
+          console.log("✅ JobQueue完了を検出");
+          updateSimpleProgressUI(100, '完了しました！');
+          
+          const scheduleUrl = GAS_API_URL + '?action=getSchedule&month=' + monthKey + '&v=' + new Date().getTime();
+          const scheduleResult = await callGASWithJSONP(scheduleUrl);
+          
+          if (scheduleResult.success) {
+            return scheduleResult.data;
+          }
+        } else if (statusResult.status === "failed") {
+          throw new Error("スケジュール生成に失敗しました: " + (statusResult.error || ''));
+        }
+      } catch (gasError) {
+        console.log("GASチェックエラー（続行）:", gasError);
+      }
+      
+      // ★シンプルな進捗表示
+      const estimatedPercentage = Math.min(40 + (attempt * 0.45), 95);
+      const elapsedSeconds = attempt * interval / 1000;
+      updateSimpleProgressUI(estimatedPercentage, 'OR-Toolsで最適化中... (' + elapsedSeconds + '秒経過)');
+      
+      await sleep(interval);
+      
+    } catch (error) {
+      console.error("ポーリングエラー:", error);
+      
+      if (attempt >= maxAttempts) {
+        throw new Error("タイムアウト: 処理に時間がかかりすぎています");
+      }
+      
+      await sleep(interval);
+    }
+  }
+  
+  throw new Error("タイムアウト: 処理が完了しませんでした");
 }
-
-const status = statusResult.status;
-const progress = statusResult.progress;
-
-if (status === "completed") {
-console.log("処理完了!結果を取得します...");
-updateSimpleProgressUI(100, '完了しました！'); // ★100%に更新
-
-const scheduleUrl = GAS_API_URL + '?action=getSchedule&month=' + monthKey + '&v=' + new Date().getTime();
-const scheduleResult = await callGASWithJSONP(scheduleUrl);
-
-if (!scheduleResult.success) {
-throw new Error("スケジュールの取得に失敗しました: " + scheduleResult.message);
-}
-
-return scheduleResult.data;
-
-} else if (status === "failed") {
-throw new Error("スケジュール生成に失敗しました");
-
-} else if (status === "processing" || status === "pending") {
-// ★シンプルな進捗表示
-const estimatedPercentage = Math.min((attempt * 0.8), 95);
-const elapsedSeconds = attempt * interval / 1000;
-updateSimpleProgressUI(estimatedPercentage, 'OR-Toolsで最適化中... (' + elapsedSeconds + '秒経過)');
-
-await sleep(interval);
-continue;
-
-} else {
-throw new Error("不明なステータス: " + status);
-}
-
-} catch (error) {
-console.error("ポーリングエラー:", error);
-if (attempt >= maxAttempts) {
-throw new Error("タイムアウト: 処理に時間がかかりすぎています");
-}
-await sleep(interval);
-}
-}
-
-throw new Error("タイムアウト: 処理が完了しませんでした");
-}
-
 // ★新規関数: シンプルなプログレスUIを表示
 function showSimpleProgressUI() {
 resultsArea.innerHTML = `
