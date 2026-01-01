@@ -2883,6 +2883,168 @@ link.click();
 }
 
 // ============================================
+// 勤務表（結果）CSV出力 / PDF出力
+// - 「勤務表」「日毎の人数集計」「個人別シフト回数集計」をすべて出力
+// ============================================
+
+function escapeCsvCell(value) {
+  if (value === null || value === undefined) return '';
+  const s = String(value).replace(/\r?\n/g, ' ').trim();
+  if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function tableToCSV(tableEl) {
+  const rows = Array.from(tableEl.querySelectorAll('tr'));
+  return rows.map(row => {
+    const cells = Array.from(row.querySelectorAll('th,td')).map(td => escapeCsvCell(td.innerText));
+    return cells.join(',');
+  }).join('\n');
+}
+
+function exportScheduleToCSV() {
+  try {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth() + 1;
+
+    const container = document.getElementById('schedule-results');
+    if (!container) {
+      alert('勤務表の表示領域（schedule-results）が見つかりません');
+      return;
+    }
+    const tables = Array.from(container.querySelectorAll('table'));
+    if (tables.length === 0) {
+      alert('勤務表がまだ表示されていません。先に「勤務表読み込み/作成」を実行してください。');
+      return;
+    }
+
+    // 期待: 0=勤務表, 1=日毎集計, 2=個人別集計（ただし将来増減しても全表を出力）
+    const titles = [
+      '【勤務表】',
+      '【日毎の人数集計】',
+      '【個人別シフト回数集計】'
+    ];
+
+    const parts = [];
+    for (let i = 0; i < tables.length; i++) {
+      const title = titles[i] || `【表${i + 1}】`;
+      parts.push(title);
+      parts.push(tableToCSV(tables[i]));
+      parts.push(''); // 空行
+    }
+
+    const csv = parts.join('\n') + '\n';
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `schedule_${year}_${String(month).padStart(2, '0')}.csv`;
+    link.click();
+  } catch (e) {
+    console.error('CSV出力エラー:', e);
+    alert('CSV出力でエラーが発生しました: ' + (e.message || e));
+  }
+}
+
+// canvasをPDFに複数ページで追加（縦長の場合は分割）
+function addCanvasToPdfAsPages(pdf, canvas, marginMm) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  const imgData = canvas.toDataURL('image/png');
+
+  // mm単位で画像をページ幅にフィットさせる
+  const imgWidth = pageWidth - marginMm * 2;
+  const imgHeight = canvas.height * (imgWidth / canvas.width);
+
+  // 1ページに収まるならそのまま
+  if (imgHeight <= pageHeight - marginMm * 2) {
+    pdf.addImage(imgData, 'PNG', marginMm, marginMm, imgWidth, imgHeight);
+    return;
+  }
+
+  // 収まらない場合は縦方向にスライス
+  // jsPDFは同じ画像をy位置だけ変えて描画できるが、クロップはできないので、
+  // 一度スライス用canvasを作って分割描画する。
+  const usableHeight = pageHeight - marginMm * 2;
+
+  // 元canvasのスライス高さ（px）を計算
+  const sliceHeightPx = Math.floor(canvas.width * (usableHeight / imgWidth));
+  let renderedHeight = 0;
+
+  while (renderedHeight < canvas.height) {
+    const sliceCanvas = document.createElement('canvas');
+    sliceCanvas.width = canvas.width;
+    sliceCanvas.height = Math.min(sliceHeightPx, canvas.height - renderedHeight);
+
+    const ctx = sliceCanvas.getContext('2d');
+    ctx.drawImage(
+      canvas,
+      0, renderedHeight, canvas.width, sliceCanvas.height,
+      0, 0, canvas.width, sliceCanvas.height
+    );
+
+    const sliceData = sliceCanvas.toDataURL('image/png');
+    const sliceImgHeight = sliceCanvas.height * (imgWidth / sliceCanvas.width);
+
+    pdf.addImage(sliceData, 'PNG', marginMm, marginMm, imgWidth, sliceImgHeight);
+
+    renderedHeight += sliceCanvas.height;
+    if (renderedHeight < canvas.height) pdf.addPage();
+  }
+}
+
+async function exportScheduleToPDF() {
+  try {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth() + 1;
+
+    const container = document.getElementById('schedule-results');
+    if (!container) {
+      alert('勤務表の表示領域（schedule-results）が見つかりません');
+      return;
+    }
+
+    // 表がなければ中止
+    const tables = Array.from(container.querySelectorAll('table'));
+    if (tables.length === 0) {
+      alert('勤務表がまだ表示されていません。先に「勤務表読み込み/作成」を実行してください。');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    // 横向きA4で作成（勤務表が横長のため）
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const marginMm = 6;
+
+    // できるだけ文字を潰さないためscaleを上げる（重くなる場合は 1.5 に）
+    const canvasOptions = { scale: 2, useCORS: true, backgroundColor: '#ffffff' };
+
+    // 1) 勤務表テーブル
+    const titleEls = Array.from(container.querySelectorAll('h4'));
+    const firstTable = tables[0];
+
+    // 勤務表タイトルをPDFにテキストで入れる（日本語はフォント未対応の環境があるので画像化しない）
+    // → タイトルもcanvasに含めたい場合は、タイトル要素もhtml2canvas対象にする
+    // ここでは「表を確実に」出す方針で、テーブルを画像化する
+
+    // テーブルごとにページを分けて出力（安定重視）
+    for (let i = 0; i < tables.length; i++) {
+      if (i > 0) pdf.addPage();
+      const canvas = await html2canvas(tables[i], canvasOptions);
+      addCanvasToPdfAsPages(pdf, canvas, marginMm);
+    }
+
+    pdf.save(`schedule_${year}_${String(month).padStart(2, '0')}.pdf`);
+  } catch (e) {
+    console.error('PDF出力エラー:', e);
+    alert('PDF出力でエラーが発生しました: ' + (e.message || e));
+  }
+}
+
+
+
+// ============================================
 // 初期化処理
 // ============================================
 
@@ -3163,18 +3325,15 @@ async function pollJobStatus(jobId, monthKey) {
     
     try {
       // ★★★ 方法1: Firestoreのschedulesを直接チェック ★★★
-      // ★修正: db → firestore、schedules → Schedules
-      const scheduleDoc = await firestore.collection('Schedules').doc(monthKey).get();
+      const scheduleDoc = await db.collection('schedules').doc(monthKey).get();
       
       if (scheduleDoc.exists) {
         const data = scheduleDoc.data();
         
-        // updatedAtまたはcreatedAtを確認
+        // updatedAtを確認
         let updatedAt = null;
         if (data.updatedAt) {
           updatedAt = data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt);
-        } else if (data.createdAt) {
-          updatedAt = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
         }
         
         // 開始時刻より後に更新されていれば新しい結果
