@@ -3163,15 +3163,18 @@ async function pollJobStatus(jobId, monthKey) {
     
     try {
       // ★★★ 方法1: Firestoreのschedulesを直接チェック ★★★
-      const scheduleDoc = await db.collection('schedules').doc(monthKey).get();
+      // ★修正: db → firestore、schedules → Schedules
+      const scheduleDoc = await firestore.collection('Schedules').doc(monthKey).get();
       
       if (scheduleDoc.exists) {
         const data = scheduleDoc.data();
         
-        // updatedAtを確認
+        // updatedAtまたはcreatedAtを確認
         let updatedAt = null;
         if (data.updatedAt) {
           updatedAt = data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt);
+        } else if (data.createdAt) {
+          updatedAt = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
         }
         
         // 開始時刻より後に更新されていれば新しい結果
