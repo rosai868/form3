@@ -3325,7 +3325,7 @@ async function pollJobStatus(jobId, monthKey) {
     
     try {
       // ★★★ 方法1: Firestoreのschedulesを直接チェック ★★★
-      const scheduleDoc = await db.collection('schedules').doc(monthKey).get();
+      const scheduleDoc = await firestore.collection('schedules').doc(monthKey).get();
       
       if (scheduleDoc.exists) {
         const data = scheduleDoc.data();
