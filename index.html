@@ -688,7 +688,7 @@ font-size: 10px;
 <i class="fas fa-undo"></i> 全てオン
 </button>
 <button id="relax-constraints-btn" style="background: #FF9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">
-<i class="fas fa-bolt"></i> 緩和モード
+<i class="fas fa-bolt"></i> 緩和を選ぶ
 </button>
 </div>
 </div>
@@ -737,6 +737,35 @@ font-size: 10px;
 <!-- 動的に生成 -->
 </div>
 </div>
+</div>
+
+<!-- Constraint Relaxation Modal -->
+<div id="relax-modal" style="display:none; position:fixed; z-index:1001; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+  <div style="background-color:#fff; margin:5% auto; padding:20px; border-radius:8px; width:90%; max-width:720px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+      <h3 id="relax-modal-title" style="margin:0; font-size:18px;">条件の緩和</h3>
+      <button id="relax-modal-close" aria-label="close" style="background:none; border:none; font-size:22px; cursor:pointer;">×</button>
+    </div>
+
+    <div id="relax-modal-message" style="margin-top:12px; color:#333; line-height:1.5;"></div>
+
+    <div style="margin-top:12px;">
+      <div style="font-weight:600; margin-bottom:8px;">緩和する条件を選択</div>
+      <div id="relax-modal-constraints" style="max-height:320px; overflow:auto; border:1px solid #e5e7eb; border-radius:6px; padding:10px;">
+        <!-- dynamically filled -->
+      </div>
+      <div style="margin-top:8px; color:#6b7280; font-size:12px;">
+        チェックを入れた条件は無効化（緩和）して再探索します。チェックがない条件は厳格に維持します。
+      </div>
+    </div>
+
+    <div id="relax-modal-errors" style="display:none; margin-top:12px; padding:10px; background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; color:#9a3412; white-space:pre-wrap;"></div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+      <button id="relax-modal-cancel" style="padding:10px 14px; background:#e5e7eb; border:none; border-radius:6px; cursor:pointer;">キャンセル</button>
+      <button id="relax-modal-apply" style="padding:10px 14px; background:#2563eb; color:white; border:none; border-radius:6px; cursor:pointer;">再試行</button>
+    </div>
+  </div>
 </div>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
@@ -796,7 +825,7 @@ function relaxConstraints() {
     document.getElementById('constraint-pattern-bonus').checked = false;
     // 希望優先モードはオフ
     document.getElementById('constraint-request-priority').checked = false;
-    alert('緩和モードに設定しました。チームバランス・リーダー必須・深夜間隔等をオフにしました。');
+    alert('緩和を選ぶに設定しました。チームバランス・リーダー必須・深夜間隔等をオフにしました。');
 }
 
 function getConstraintSettings() {
@@ -3102,9 +3131,88 @@ if (resetConstraintsBtn) {
 
 const relaxConstraintsBtn = document.getElementById('relax-constraints-btn');
 if (relaxConstraintsBtn) {
-    relaxConstraintsBtn.addEventListener('click', relaxConstraints);
+    relaxConstraintsBtn.addEventListener('click', openRelaxModalForEdit);
 }
 
+
+  // Relax modal controls
+  const relaxCloseBtn = document.getElementById('relax-modal-close');
+  const relaxCancelBtn = document.getElementById('relax-modal-cancel');
+  const relaxApplyBtn = document.getElementById('relax-modal-apply');
+
+  const restoreOnClose = () => {
+    if (relaxModalState?.mode === 'retry' && relaxModalState?.originalUISettings) {
+      setConstraintSettings(relaxModalState.originalUISettings);
+    }
+  };
+
+  if (relaxCloseBtn) {
+    relaxCloseBtn.addEventListener('click', () => {
+      restoreOnClose();
+      closeRelaxModal();
+    });
+  }
+
+  if (relaxCancelBtn) {
+    relaxCancelBtn.addEventListener('click', () => {
+      restoreOnClose();
+      closeRelaxModal();
+    });
+  }
+
+  if (relaxApplyBtn) {
+    relaxApplyBtn.addEventListener('click', async () => {
+      if (!relaxModalState) return;
+
+      const nextSettings = getRelaxSelectionFromModal(relaxModalState.baseSettings);
+      setConstraintSettings(nextSettings);
+
+      // edit mode: apply only
+      if (relaxModalState.mode === 'edit') {
+        closeRelaxModal();
+        return;
+      }
+
+      // retry mode
+      setLoading(true);
+      statusPanel.style.display = 'block';
+
+      try {
+        const scheduleData = await runCreateAndPoll(relaxModalState.monthKey, nextSettings);
+
+        if (isScheduleFeasible(scheduleData)) {
+          closeRelaxModal();
+          displayScheduleResults(scheduleData);
+          return;
+        }
+
+        const failureText = extractFailureText(scheduleData);
+        openRelaxModal({
+          mode: 'retry',
+          title: '全条件では解が見つかりませんでした',
+          message: 'どの条件を緩和するか選択して再試行します。',
+          errorText: failureText,
+          baseSettings: relaxModalState.baseSettings,
+          currentSettings: nextSettings,
+          monthKey: relaxModalState.monthKey,
+          originalUISettings: relaxModalState.originalUISettings
+        });
+      } catch (err) {
+        openRelaxModal({
+          mode: 'retry',
+          title: '再試行に失敗しました',
+          message: '通信エラーまたはバックエンドエラーです。必要に応じてさらに条件を緩和して再試行してください。',
+          errorText: err?.message || String(err),
+          baseSettings: relaxModalState.baseSettings,
+          currentSettings: nextSettings,
+          monthKey: relaxModalState.monthKey,
+          originalUISettings: relaxModalState.originalUISettings
+        });
+      } finally {
+        setLoading(false);
+      }
+    });
+  }
 // ============================================
 // GAS呼び出しと結果表示
 // ============================================
@@ -3236,77 +3344,272 @@ loadBtn.innerHTML = '<i class="fas fa-folder-open"></i> 保存済みを読み込
 });
 }
 
+// =============================
+// Strict-first + manual relaxation workflow
+// =============================
+
+// UI checkbox ↔ parameter mapping
+const CONSTRAINT_META = [
+  { key: 'nightCount',       param: 'c_nightCount',       checkboxId: 'constraint-night-count',       label: '深夜回数の均等化' },
+  { key: 'staffCount',       param: 'c_staffCount',       checkboxId: 'constraint-staff-count',       label: '勤務数の均等化' },
+  { key: 'teamBalance',      param: 'c_teamBalance',      checkboxId: 'constraint-team-balance',      label: 'チームバランス' },
+  { key: 'leaderRequired',   param: 'c_leaderRequired',   checkboxId: 'constraint-leader-required',   label: 'リーダー必須' },
+  { key: 'junKyuuShin',      param: 'c_junKyuuShin',      checkboxId: 'constraint-jun-kyuu-shin',     label: '休→準→深を禁止' },
+  { key: 'kyuuKyuuShin',     param: 'c_kyuuKyuuShin',     checkboxId: 'constraint-kyuu-kyuu-shin',    label: '休→休→準を禁止' },
+  { key: 'day4Consecutive',  param: 'c_day4Consecutive',  checkboxId: 'constraint-day-4-consecutive', label: '日勤4連続の制限' },
+  { key: 'nightInterval',    param: 'c_nightInterval',    checkboxId: 'constraint-night-interval',    label: '深夜の間隔' },
+  { key: 'junBeforeRest',    param: 'c_junBeforeRest',    checkboxId: 'constraint-jun-before-rest',   label: '準の前は休2連続を禁止' },
+  { key: 'junToShin',        param: 'c_junToShin',        checkboxId: 'constraint-jun-to-shin',       label: '準→深の連続禁止' },
+  { key: 'dayToShin',        param: 'c_dayToShin',        checkboxId: 'constraint-day-to-shin',       label: '日→深の連続禁止' },
+  { key: 'patternBonus',     param: 'c_patternBonus',     checkboxId: 'constraint-pattern-bonus',     label: 'セット/パターンボーナス' },
+  { key: 'requestPriority',  param: 'c_requestPriority',  checkboxId: 'constraint-request-priority',  label: '希望優先モード（目的関数）' }
+];
+
+function buildAllOnConstraintSettings(preserveRequestPriority = false) {
+  const s = {};
+  for (const c of CONSTRAINT_META) {
+    if (c.key === 'requestPriority') s[c.key] = !!preserveRequestPriority;
+    else s[c.key] = true;
+  }
+  return s;
+}
+
+function buildConstraintParamsFromSettings(settings) {
+  const p = {};
+  for (const c of CONSTRAINT_META) {
+    p[c.param] = settings[c.key] ? 1 : 0;
+  }
+  return p;
+}
+
+function setConstraintSettings(settings) {
+  for (const c of CONSTRAINT_META) {
+    const el = document.getElementById(c.checkboxId);
+    if (el) el.checked = !!settings[c.key];
+  }
+}
+
+function isScheduleFeasible(scheduleData) {
+  if (!scheduleData) return false;
+  const draft = scheduleData?.drafts?.draft1;
+  if (!draft) return false;
+
+  const vCrit = (draft.validation?.criticalErrors?.length || 0);
+  const sCrit = (draft.schedule?.criticalErrors || 0);
+
+  // どちらかに致命的エラーがある場合は「条件を満たさない」とみなす
+  if (vCrit > 0 || sCrit > 0) return false;
+
+  // schedule が欠けている場合も失敗扱い
+  if (!draft.schedule || !draft.schedule.schedule) return false;
+
+  return true;
+}
+
+function extractFailureText(scheduleData, fallback = '全条件では解が見つかりませんでした。') {
+  if (!scheduleData) return '結果が取得できませんでした（タイムアウト/通信エラー）。';
+
+  const draft = scheduleData?.drafts?.draft1;
+  if (!draft) return fallback;
+
+  const lines = [];
+  const v = draft.validation?.criticalErrors || [];
+  const d = draft.schedule?.errorDetails || [];
+
+  for (const e of v) lines.push(`・${e}`);
+  for (const e of d) lines.push(`・${e}`);
+
+  if (lines.length === 0) return fallback;
+  return `${fallback}\n${lines.join('\n')}`;
+}
+
+// ---- Relax modal state ----
+let relaxModalState = null;
+
+function openRelaxModal({
+  mode,
+  title,
+  message,
+  errorText,
+  baseSettings,
+  currentSettings,
+  monthKey,
+  originalUISettings
+}) {
+  const modal = document.getElementById('relax-modal');
+  const titleEl = document.getElementById('relax-modal-title');
+  const msgEl = document.getElementById('relax-modal-message');
+  const listEl = document.getElementById('relax-modal-constraints');
+  const errEl = document.getElementById('relax-modal-errors');
+  const applyBtn = document.getElementById('relax-modal-apply');
+
+  relaxModalState = { mode, baseSettings, currentSettings, monthKey, originalUISettings };
+
+  titleEl.textContent = title || '条件の緩和';
+  msgEl.textContent = message || '';
+  listEl.innerHTML = '';
+
+  for (const c of CONSTRAINT_META) {
+    const relaxed = !currentSettings[c.key]; // checked = relaxed (disabled)
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.gap = '10px';
+    row.style.padding = '6px 4px';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.dataset.key = c.key;
+    cb.id = `relax-${c.key}`;
+    cb.checked = relaxed;
+
+    const label = document.createElement('label');
+    label.htmlFor = cb.id;
+    label.textContent = c.label;
+    label.style.cursor = 'pointer';
+
+    const badge = document.createElement('span');
+    badge.textContent = currentSettings[c.key] ? '有効' : '無効';
+    badge.style.marginLeft = 'auto';
+    badge.style.fontSize = '12px';
+    badge.style.color = '#6b7280';
+
+    row.appendChild(cb);
+    row.appendChild(label);
+    row.appendChild(badge);
+    listEl.appendChild(row);
+  }
+
+  if (errorText) {
+    errEl.style.display = 'block';
+    errEl.textContent = errorText;
+  } else {
+    errEl.style.display = 'none';
+    errEl.textContent = '';
+  }
+
+  applyBtn.textContent = (mode === 'edit') ? '適用' : '再試行';
+  modal.style.display = 'block';
+}
+
+function closeRelaxModal() {
+  const modal = document.getElementById('relax-modal');
+  modal.style.display = 'none';
+  relaxModalState = null;
+}
+
+function openRelaxModalForEdit() {
+  const current = getConstraintSettings();
+  const base = buildAllOnConstraintSettings(current.requestPriority);
+
+  openRelaxModal({
+    mode: 'edit',
+    title: '条件の編集（緩和の選択）',
+    message: 'チェックした条件を無効化（緩和）として適用します。生成ボタンではまず全条件ONで探索し、失敗時にここで選んだ緩和を適用して再探索できます。',
+    errorText: null,
+    baseSettings: base,
+    currentSettings: current,
+    monthKey: null,
+    originalUISettings: null
+  });
+}
+
+function getRelaxSelectionFromModal(baseSettings) {
+  const listEl = document.getElementById('relax-modal-constraints');
+  const next = { ...baseSettings };
+
+  const inputs = listEl.querySelectorAll('input[type="checkbox"][data-key]');
+  inputs.forEach((cb) => {
+    const key = cb.dataset.key;
+    // checked = relaxed => disabled
+    next[key] = !cb.checked;
+  });
+
+  return next;
+}
+
+async function runCreateAndPoll(monthKey, settings) {
+  const constraintParams = buildConstraintParamsFromSettings(settings);
+
+  const callbackName = `gasCallback_${Date.now()}`;
+  const urlParams = new URLSearchParams({
+    action: 'create',
+    month: monthKey,
+    ...constraintParams,
+    v: Date.now().toString(),
+    callback: callbackName
+  });
+
+  const createUrl = `${GAS_WEB_APP_URL}?${urlParams.toString()}`;
+  const createResult = await callGASWithJSONP(createUrl, callbackName);
+
+  if (!createResult?.success) {
+    const msg = createResult?.error || 'GASの応答が不正です。';
+    throw new Error(msg);
+  }
+
+  const jobId = createResult.jobId;
+  const scheduleData = await pollJobStatus(jobId, monthKey);
+  return scheduleData;
+}
+
+async function strictFirstGenerate(monthKey) {
+  const originalUI = getConstraintSettings();
+
+  // まずは全条件ON（厳格）で探索
+  const strictBase = buildAllOnConstraintSettings(originalUI.requestPriority);
+  setConstraintSettings(strictBase);
+
+  try {
+    const scheduleData = await runCreateAndPoll(monthKey, strictBase);
+    if (isScheduleFeasible(scheduleData)) {
+      displayScheduleResults(scheduleData);
+      return;
+    }
+
+    // 見つからない/致命的エラー → 緩和選択へ
+    const failureText = extractFailureText(scheduleData);
+    openRelaxModal({
+      mode: 'retry',
+      title: '全条件では解が見つかりませんでした',
+      message: 'どの条件を緩和するか選択して再試行します。',
+      errorText: failureText,
+      baseSettings: strictBase,
+      currentSettings: strictBase,
+      monthKey,
+      originalUISettings: originalUI
+    });
+  } catch (err) {
+    openRelaxModal({
+      mode: 'retry',
+      title: '生成に失敗しました',
+      message: '通信エラーまたはバックエンドエラーです。必要に応じて条件を緩和して再試行できます。',
+      errorText: err?.message || String(err),
+      baseSettings: strictBase,
+      currentSettings: strictBase,
+      monthKey,
+      originalUISettings: originalUI
+    });
+  }
+}
+
 generateBtn.addEventListener('click', async function() {
-const year = currentMonth.getFullYear();
-const month = currentMonth.getMonth() + 1;
-const monthKey = year + '-' + String(month).padStart(2, '0');
+  const year = yearSelect.value;
+  const month = monthSelect.value.padStart(2, '0');
+  const monthKey = `${year}-${month}`;
 
-if (!confirm(year + '年' + month + '月 の勤務表の作成を開始しますか？')) {
-return;
-}
+  setLoading(true);
+  statusPanel.style.display = 'block';
 
-generateBtn.disabled = true;
-generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ジョブを登録中...';
-resultsArea.innerHTML = '<p style="color: #00897B;">処理を開始しています...</p>';
-
-try {
-// 制約設定を取得
-const constraints = getConstraintSettings();
-const constraintParams = 
-// 人数・回数制約
-'&c_nightCount=' + (constraints.nightCount ? '1' : '0') +
-'&c_staffCount=' + (constraints.staffCount ? '1' : '0') +
-'&c_teamBalance=' + (constraints.teamBalance ? '1' : '0') +
-'&c_leaderRequired=' + (constraints.leaderRequired ? '1' : '0') +
-// シフトパターン制約
-'&c_junKyuuShin=' + (constraints.junKyuuShin ? '1' : '0') +
-'&c_kyuuKyuuShin=' + (constraints.kyuuKyuuShin ? '1' : '0') +
-'&c_day4Consecutive=' + (constraints.day4Consecutive ? '1' : '0') +
-'&c_nightInterval=' + (constraints.nightInterval ? '1' : '0') +
-'&c_junBeforeRest=' + (constraints.junBeforeRest ? '1' : '0') +
-'&c_junToShin=' + (constraints.junToShin ? '1' : '0') +
-'&c_dayToShin=' + (constraints.dayToShin ? '1' : '0') +
-'&c_patternBonus=' + (constraints.patternBonus ? '1' : '0');
-
-const createUrl = GAS_API_URL + '?action=create&month=' + monthKey + constraintParams + '&v=' + new Date().getTime();
-console.log("ジョブ登録URL:", createUrl);
-console.log("制約設定:", constraints);
-
-const createResult = await callGASWithJSONP(createUrl);
-console.log("ジョブ登録結果:", createResult);
-
-if (!createResult.success) {
-throw new Error(createResult.message);
-}
-
-const jobId = createResult.jobId;
-console.log("ジョブID:", jobId);
-
-generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 処理中...';
-resultsArea.innerHTML =
-'<p style="color: #00897B;">' +
-'<i class="fas fa-cog fa-spin"></i> スケジュールを生成中です...<br>' +
-'<span style="font-size: 12px;">この処理には数分かかることがあります。しばらくお待ちください。</span>' +
-'</p>';
-
-const scheduleData = await pollJobStatus(jobId, monthKey);
-
-displayScheduleResults(scheduleData, monthKey);
-
-} catch (error) {
-console.error('詳細エラー:', error);
-resultsArea.innerHTML =
-'<div style="background: #FFEBEE; padding: 15px; border-radius: 8px;">' +
-'<p class="error-message">エラーが発生しました</p>' +
-'<p style="font-size: 12px; color: #666; margin-top: 10px;">' +
-error.message +
-'</p>' +
-'</div>';
-} finally {
-generateBtn.disabled = false;
-generateBtn.innerHTML = '<i class="fas fa-magic"></i> 勤務表の作成を開始';
-}
+  try {
+    await strictFirstGenerate(monthKey);
+  } finally {
+    setLoading(false);
+  }
 });
+
+
+
 
 
 async function pollJobStatus(jobId, monthKey) {
@@ -3325,7 +3628,7 @@ async function pollJobStatus(jobId, monthKey) {
     
     try {
       // ★★★ 方法1: Firestoreのschedulesを直接チェック ★★★
-      const scheduleDoc = await firestore.collection('schedules').doc(monthKey).get();
+      const scheduleDoc = await db.collection('schedules').doc(monthKey).get();
       
       if (scheduleDoc.exists) {
         const data = scheduleDoc.data();
