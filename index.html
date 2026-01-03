@@ -1,24 +1,21 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-<link rel="icon" href="data:,">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="data:," rel="icon"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>7西シフト希望</title>
-
 <script src="firebase-config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
-
 <!-- PDF出力用ライブラリ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: "Yu Gothic", YuGothic, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background: #FFFBF7; padding: 20px; color: #5D4037; }
@@ -422,149 +419,129 @@ font-size: 10px;
 </style>
 </head>
 <body>
-
-<div id="loadingSection" class="container">
+<div class="container" id="loadingSection">
 <div class="loading">
 <p>システムを初期化中...</p>
 <p style="font-size: 14px; margin-top: 10px;">しばらくお待ちください</p>
 </div>
 </div>
-
-<div id="loginSection" class="container login-container hidden">
+<div class="container login-container hidden" id="loginSection">
 <h1>7西シフト希望</h1>
 <div class="form-group">
 <label for="userId">ID</label>
-<input type="text" id="userId" placeholder="IDを入力">
+<input id="userId" placeholder="IDを入力" type="text"/>
 </div>
 <div class="form-group">
 <label for="password">パスワード</label>
-<input type="password" id="password" placeholder="パスワードを入力">
+<input id="password" placeholder="パスワードを入力" type="password"/>
 </div>
-<button onclick="login()" id="loginButton">ログイン</button>
+<button id="loginButton" onclick="login()">ログイン</button>
 <div style="margin-top: 20px; padding: 15px; background: #FFFBF7; border-radius: 8px; font-size: 12px; color: #777; line-height: 1.6;">
 <p style="margin: 5px 0;">※ ID・パスワードを忘れた場合は師長に連絡してください</p>
 <p style="margin: 5px 0;">※ 締め切りは毎月7日の午前9:00です</p>
 </div>
-<div id="loginError" class="error-message"></div>
+<div class="error-message" id="loginError"></div>
 </div>
-
-<div id="changePasswordSection" class="container login-container hidden">
+<div class="container login-container hidden" id="changePasswordSection">
 <h2>初回ログイン - パスワード変更</h2>
 <p style="margin-bottom: 20px;">新しいパスワード（6桁の数字）を設定してください</p>
 <div class="form-group">
 <label for="newPassword">新しいパスワード</label>
-<input type="password" id="newPassword" placeholder="6桁の数字" maxlength="6">
+<input id="newPassword" maxlength="6" placeholder="6桁の数字" type="password"/>
 </div>
 <div class="form-group">
 <label for="confirmPassword">パスワード確認</label>
-<input type="password" id="confirmPassword" placeholder="もう一度入力" maxlength="6">
+<input id="confirmPassword" maxlength="6" placeholder="もう一度入力" type="password"/>
 </div>
 <button onclick="changePassword()">パスワード変更</button>
-<div id="passwordError" class="error-message"></div>
+<div class="error-message" id="passwordError"></div>
 </div>
-
-<div id="mainSection" class="container hidden">
+<div class="container hidden" id="mainSection">
 <h1 style="background: linear-gradient(135deg, #00897B 0%, #4DB6AC 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 28px;">シフト希望入力</h1>
 <div id="welcomeMessage" style="text-align: center; margin-bottom: 20px;"></div>
-
 <div class="timer" style="background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%); border: none; border-radius: 12px; padding: 16px 20px; box-shadow: 0 2px 10px rgba(255, 193, 7, 0.2);">
 <div style="display: flex; align-items: center; gap: 8px; color: #F57C00;"><i class="fas fa-clock"></i> 締切まで残り時間</div>
-<div id="countdown" class="timer-display" style="font-size: 18px; color: #E65100;">計算中...</div>
+<div class="timer-display" id="countdown" style="font-size: 18px; color: #E65100;">計算中...</div>
 </div>
-
 <div class="calendar-header">
 <button onclick="previousMonth()"><i class="fas fa-chevron-left"></i> 前月</button>
 <h2 id="currentMonth"></h2>
 <button onclick="nextMonth()">翌月 <i class="fas fa-chevron-right"></i></button>
 </div>
-
 <div id="calendar"></div>
-
 <div style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); padding: 16px 20px; border-radius: 12px; margin: 20px 0; display: flex; align-items: center; gap: 12px;">
 <i class="fas fa-info-circle" style="font-size: 24px; color: #2E7D32;"></i>
 <div style="color: #1B5E20; font-size: 14px;">
 <strong>使い方:</strong> 下の希望種別を選択してから、カレンダーの日付をタップしてください
 </div>
 </div>
-
 <div class="request-buttons">
-<div class="request-button" onclick="setRequestType('休')" data-type="休">
+<div class="request-button" data-type="休" onclick="setRequestType('休')">
 <span class="icon">🏠</span>
 <span class="label">休み希望</span>
 </div>
-<div class="request-button" onclick="setRequestType('年')" data-type="年">
+<div class="request-button" data-type="年" onclick="setRequestType('年')">
 <span class="icon">🌴</span>
 <span class="label">年休希望</span>
 </div>
-<div class="request-button" onclick="setRequestType('出')" data-type="出">
+<div class="request-button" data-type="出" onclick="setRequestType('出')">
 <span class="icon">✈️</span>
 <span class="label">出張</span>
 </div>
-<div class="request-button" onclick="setRequestType('日')" data-type="日">
+<div class="request-button" data-type="日" onclick="setRequestType('日')">
 <span class="icon">☀️</span>
 <span class="label">日勤希望</span>
 </div>
-<div class="request-button" onclick="setRequestType('特')" data-type="特">
+<div class="request-button" data-type="特" onclick="setRequestType('特')">
 <span class="icon">⭐</span>
 <span class="label">特休希望</span>
 </div>
-<div class="request-button" onclick="setRequestType('AM')" data-type="AM">
+<div class="request-button" data-type="AM" onclick="setRequestType('AM')">
 <span class="icon">🌅</span>
 <span class="label">午前休</span>
 </div>
-<div class="request-button" onclick="setRequestType('PM')" data-type="PM">
+<div class="request-button" data-type="PM" onclick="setRequestType('PM')">
 <span class="icon">🌇</span>
 <span class="label">午後休</span>
 </div>
-<div class="request-button" onclick="setRequestType('夏')" data-type="夏">
+<div class="request-button" data-type="夏" onclick="setRequestType('夏')">
 <span class="icon">🏖️</span>
 <span class="label">夏休み</span>
 </div>
-<div class="request-button" onclick="setRequestType('ケP4')" data-type="ケP4">
+<div class="request-button" data-type="ケP4" onclick="setRequestType('ケP4')">
 <span class="icon">📚</span>
 <span class="label">研修P4</span>
 </div>
-<div class="request-button" onclick="setRequestType('ケ7')" data-type="ケ7">
+<div class="request-button" data-type="ケ7" onclick="setRequestType('ケ7')">
 <span class="icon">📖</span>
 <span class="label">研修7h</span>
 </div>
 </div>
-
 <div class="selected-dates">
 <h3>選択済みの希望</h3>
 <div id="selectedDatesList"></div>
 </div>
-
-<button onclick="submitRequests()" id="submitButton" style="background: linear-gradient(135deg, #00897B 0%, #4DB6AC 100%); padding: 16px 32px; font-size: 16px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0, 137, 123, 0.4); margin-top: 20px;">
+<button id="submitButton" onclick="submitRequests()" style="background: linear-gradient(135deg, #00897B 0%, #4DB6AC 100%); padding: 16px 32px; font-size: 16px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0, 137, 123, 0.4); margin-top: 20px;">
 <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>希望を提出する
 </button>
-
-<div id="submissionStatus" class="selected-dates" style="margin-top: 20px;">
+<div class="selected-dates" id="submissionStatus" style="margin-top: 20px;">
 <h3>提出状況</h3>
 <div id="submissionStatusContent"></div>
 </div>
-
 <div id="submitMessage" style="margin-top: 10px;"></div>
-
-<button id="adminButton" onclick="showAdminSection()" class="logout-button hidden" style="background: #6c757d; margin-top: 10px;">管理者画面へ</button>
-
-<button onclick="showChangePasswordForm()" class="logout-button password-change-button">パスワードを変更する</button>
-<button onclick="logout()" class="logout-button">ログアウト</button>
+<button class="logout-button hidden" id="adminButton" onclick="showAdminSection()" style="background: #6c757d; margin-top: 10px;">管理者画面へ</button>
+<button class="logout-button password-change-button" onclick="showChangePasswordForm()">パスワードを変更する</button>
+<button class="logout-button" onclick="logout()">ログアウト</button>
 </div>
-
-<div id="adminSection" class="container hidden">
+<div class="container hidden" id="adminSection">
 <h1>管理者画面</h1>
-
 <button onclick="showMainSection()" style="width: auto; padding: 10px 20px; margin-bottom: 20px; background: #6c757d;">自分のシフト登録に戻る</button>
-
 <div style="display: flex; gap: 10px; margin-bottom: 20px;">
 <button onclick="showPreviousMonth()" style="width: auto; padding: 10px 20px;">前月</button>
 <button onclick="showCurrentMonth()" style="width: auto; padding: 10px 20px;">今月</button>
 <button onclick="showNextMonth()" style="width: auto; padding: 10px 20px;">翌月</button>
 </div>
-
 <h2 id="adminMonth"></h2>
-
 <div class="admin-table-container">
 <table class="admin-table">
 <thead>
@@ -573,20 +550,17 @@ font-size: 10px;
 <tbody id="adminTableBody"></tbody>
 </table>
 </div>
-
 <button onclick="exportToCSV()" style="margin-top: 20px;">CSVエクスポート</button>
-
 <div style="margin-top: 30px; padding: 20px; background: #FFFBF7; border: 1px solid #F0EAE4; border-radius: 8px;">
 <h3 style="font-size: 16px; margin-bottom: 15px; color: #5D4037;">
 <i class="fas fa-magic" style="color: #80CBC4;"></i>
 勤務表 自動作成
 </h3>
 <p style="font-size: 13px; color: #777; margin-bottom: 15px;">
-現在表示中の月（YYYY年MM月）の希望データを基に、勤務表の案を作成します。<br>
-処理には数分かかる場合があります。<br>
+現在表示中の月（YYYY年MM月）の希望データを基に、勤務表の案を作成します。<br/>
+処理には数分かかる場合があります。<br/>
 <strong style="color: #2E7D32;">※ ブラウザを閉じても、結果は保存されます。</strong>
 </p>
-
 <!-- ★★★ 制約設定パネル ★★★ -->
 <div id="constraint-settings" style="background: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -597,93 +571,74 @@ font-size: 10px;
 <i class="fas fa-chevron-up"></i> 詳細を隠す
 </button>
 </div>
-
 <div id="constraint-details" style="display: block;">
 <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
 解が見つからない場合は、制約のチェックを外して再実行してください。
 </p>
-
 <!-- 人数・回数制約（重要） -->
 <div style="background: #FFF3E0; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
 <strong style="font-size: 12px; color: #E65100;">⚠️ 人数・回数制約（外すと勤務表として不完全になる可能性）</strong>
 <div style="display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 11px; margin-top: 8px;">
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-night-count" checked>
+<input checked="" id="constraint-night-count" type="checkbox"/>
 <span>準+深は7〜8回/月</span>
 </label>
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-staff-count" checked>
+<input checked="" id="constraint-staff-count" type="checkbox"/>
 <span>日勤・準夜・深夜の人数配置</span>
 </label>
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-team-balance" checked>
+<input checked="" id="constraint-team-balance" type="checkbox"/>
 <span>チームバランス（A/B人数）</span>
 </label>
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: white; border: 1px solid #FFCC80; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-leader-required" checked>
+<input checked="" id="constraint-leader-required" type="checkbox"/>
 <span>リーダー必須配置</span>
 </label>
-
 </div>
 </div>
-
 <!-- シフトパターン制約 -->
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-jun-kyuu-shin" checked>
+<input checked="" id="constraint-jun-kyuu-shin" type="checkbox"/>
 <span>準休深・深休準の禁止</span>
 </label>
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-kyuu-kyuu-shin" checked>
+<input checked="" id="constraint-kyuu-kyuu-shin" type="checkbox"/>
 <span>休休深の禁止</span>
 </label>
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-day-4-consecutive" checked>
+<input checked="" id="constraint-day-4-consecutive" type="checkbox"/>
 <span>日勤は4連続まで</span>
 </label>
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-night-interval" checked>
+<input checked="" id="constraint-night-interval" type="checkbox"/>
 <span>深夜間隔5日以上</span>
 </label>
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-jun-before-rest" checked>
+<input checked="" id="constraint-jun-before-rest" type="checkbox"/>
 <span>準夜前の休みは1つまで</span>
 </label>
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-jun-to-shin" checked>
+<input checked="" id="constraint-jun-to-shin" type="checkbox"/>
 <span>準夜→深夜の禁止</span>
 </label>
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-day-to-shin" checked>
+<input checked="" id="constraint-day-to-shin" type="checkbox"/>
 <span>日勤→深夜の禁止</span>
 </label>
-
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input type="checkbox" id="constraint-pattern-bonus" checked>
+<input checked="" id="constraint-pattern-bonus" type="checkbox"/>
 <span>準準休深深休パターン推奨</span>
 </label>
-
 </div>
-
 <div style="margin-top: 12px; padding: 12px; background: #FFF3E0; border: 2px solid #FF9800; border-radius: 8px;">
 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-<input type="checkbox" id="constraint-request-priority" style="width: 18px; height: 18px;">
+<input id="constraint-request-priority" style="width: 18px; height: 18px;" type="checkbox"/>
 <span style="font-weight: bold; color: #E65100;"><i class="fas fa-star"></i> 希望優先モード</span>
 <span style="font-size: 11px; color: #666;">（希望を最大限叶える）</span>
 </label>
 </div>
-
 <div style="margin-top: 10px; text-align: right;">
 <button id="reset-constraints-btn" style="background: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 5px;">
 <i class="fas fa-undo"></i> 全てオン
@@ -694,7 +649,6 @@ font-size: 10px;
 </div>
 </div>
 </div>
-
 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
 <button id="generate-schedule-btn" style="background: #00897B; flex: 1;">
 <i class="fas fa-magic"></i> 新規作成
@@ -709,67 +663,79 @@ font-size: 10px;
 <i class="fas fa-file-pdf"></i> PDF出力
 </button>
 </div>
-
 <div id="schedule-results" style="margin-top: 20px;"></div>
 </div>
-
 <div style="margin-top: 30px; padding: 20px; background: #F8F8F8; border: 1px solid #F0EAE4; border-radius: 8px; font-size: 13px; color: #777;">
 <h3 style="font-size: 16px; margin-bottom: 15px; color: #5D4037;">🔒 職員のパスワードリセット</h3>
 <p>
 職員がパスワードを忘れた場合は、
 <strong>Firebaseコンソールの「Authentication」</strong>
-画面から、該当の職員（例: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4d7c0d2c3d3d632e2220">[email&#160;protected]</a>）のパスワードをリセットしてください。
+画面から、該当の職員（例: <a class="__cf_email__" data-cfemail="4d7c0d2c3d3d632e2220" href="/cdn-cgi/l/email-protection">[email protected]</a>）のパスワードをリセットしてください。
 </p>
 </div>
-
-<button onclick="showChangePasswordForm()" class="logout-button password-change-button">パスワードを変更する</button>
-<button onclick="logout()" class="logout-button">ログアウト</button>
+<button class="logout-button password-change-button" onclick="showChangePasswordForm()">パスワードを変更する</button>
+<button class="logout-button" onclick="logout()">ログアウト</button>
 </div>
-
 <!-- ★勤務交換モーダル -->
 <div id="shift-swap-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
 <div style="background: white; max-width: 800px; margin: 50px auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
 <div style="background: #1976D2; color: white; padding: 20px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
 <h3 style="margin: 0;">勤務交換・譲渡</h3>
-<button onclick="closeSwapModal()" style="background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px;">&times;</button>
+<button onclick="closeSwapModal()" style="background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px;">×</button>
 </div>
-
 <div id="swap-modal-content" style="padding: 20px;">
 <!-- 動的に生成 -->
 </div>
 </div>
 </div>
-
 <!-- Constraint Relaxation Modal -->
 <div id="relax-modal" style="display:none; position:fixed; z-index:1001; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-  <div style="background-color:#fff; margin:5% auto; padding:20px; border-radius:8px; width:90%; max-width:720px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-      <h3 id="relax-modal-title" style="margin:0; font-size:18px;">条件の緩和</h3>
-      <button id="relax-modal-close" aria-label="close" style="background:none; border:none; font-size:22px; cursor:pointer;">×</button>
-    </div>
-
-    <div id="relax-modal-message" style="margin-top:12px; color:#333; line-height:1.5;"></div>
-
-    <div style="margin-top:12px;">
-      <div style="font-weight:600; margin-bottom:8px;">緩和する条件を選択</div>
-      <div id="relax-modal-constraints" style="max-height:320px; overflow:auto; border:1px solid #e5e7eb; border-radius:6px; padding:10px;">
-        <!-- dynamically filled -->
-      </div>
-      <div style="margin-top:8px; color:#6b7280; font-size:12px;">
+<div style="background-color:#fff; margin:5% auto; padding:20px; border-radius:8px; width:90%; max-width:720px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+<div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+<h3 id="relax-modal-title" style="margin:0; font-size:18px;">条件の緩和</h3>
+<button aria-label="close" id="relax-modal-close" style="background:none; border:none; font-size:22px; cursor:pointer;">×</button>
+</div>
+<div id="relax-modal-message" style="margin-top:12px; color:#333; line-height:1.5;"></div>
+<div style="margin-top:12px;">
+<div style="font-weight:600; margin-bottom:8px;">緩和する条件を選択</div>
+<div id="relax-modal-constraints" style="max-height:320px; overflow:auto; border:1px solid #e5e7eb; border-radius:6px; padding:10px;">
+<!-- dynamically filled -->
+</div>
+<div style="margin-top:8px; color:#6b7280; font-size:12px;">
         チェックを入れた条件は無効化（緩和）して再探索します。チェックがない条件は厳格に維持します。
       </div>
-    </div>
-
-    <div id="relax-modal-errors" style="display:none; margin-top:12px; padding:10px; background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; color:#9a3412; white-space:pre-wrap;"></div>
-
-    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
-      <button id="relax-modal-cancel" style="padding:10px 14px; background:#e5e7eb; border:none; border-radius:6px; cursor:pointer;">キャンセル</button>
-      <button id="relax-modal-apply" style="padding:10px 14px; background:#2563eb; color:white; border:none; border-radius:6px; cursor:pointer;">再試行</button>
-    </div>
-  </div>
 </div>
-
+<div id="relax-modal-errors" style="display:none; margin-top:12px; padding:10px; background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; color:#9a3412; white-space:pre-wrap;"></div>
+<div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+<button id="relax-modal-cancel" style="padding:10px 14px; background:#e5e7eb; border:none; border-radius:6px; cursor:pointer;">キャンセル</button>
+<button id="relax-modal-apply" style="padding:10px 14px; background:#2563eb; color:white; border:none; border-radius:6px; cursor:pointer;">再試行</button>
+</div>
+</div>
+</div>
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ===== UI / DOM helpers (safe even if elements are missing) =====
+function $(id) { return document.getElementById(id); }
+function showSection(id) {
+  const el = $(id);
+  if (!el) return;
+  el.style.display = 'block';
+  el.classList.remove('hidden');
+}
+function hideSection(id) {
+  const el = $(id);
+  if (!el) return;
+  el.style.display = 'none';
+  el.classList.add('hidden');
+}
+function getStatusPanel() { return $('progress-status'); }
+function setStatusPanelVisible(visible) {
+  const sp = getStatusPanel();
+  if (!sp) return;
+  sp.style.display = visible ? 'block' : 'none';
+}
+// ===============================================================
+
+
 // ============================================
 // ★★★ 制約設定関連の関数（グローバルスコープ） ★★★
 // ============================================
@@ -3176,9 +3142,8 @@ if (relaxConstraintsBtn) {
 
       // retry mode
       setLoading(true);
-      if (statusPanel) statusPanel.style.display = 'block';
-
-      try {
+      setStatusPanelVisible(true);
+try {
         const scheduleData = await runCreateAndPoll(relaxModalState.monthKey, nextSettings);
 
         if (isScheduleFeasible(scheduleData)) {
@@ -3219,7 +3184,6 @@ if (relaxConstraintsBtn) {
 // ============================================
 
 const generateBtn = document.getElementById('generate-schedule-btn');
-const statusPanel = document.getElementById('progress-status');
 const resultsArea = document.getElementById('schedule-results');
 
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz4E_SmydlpReF1vyieqI6ViCkHMfmVxFF4rEkhBD3JOqNdu0YGe9OI5Oxec5rO4Aeb5g/exec";
@@ -3625,9 +3589,8 @@ generateBtn.addEventListener('click', async function() {
   const monthKey = `${year}-${month}`;
 
   setLoading(true);
-  if (statusPanel) statusPanel.style.display = 'block';
-
-  try {
+  setStatusPanelVisible(true);
+try {
     await strictFirstGenerate(monthKey);
   } finally {
     setLoading(false);
@@ -3638,28 +3601,21 @@ generateBtn.addEventListener('click', async function() {
 
 
 
+
 async function pollJobStatus(jobId, monthKey, baselineUpdatedAtMs = 0) {
   const maxAttempts = 120; // 10分 (5秒×120)
   const interval = 5000;
-  let attempt = 0;
-  
-  // ★開始時刻を記録（新しい結果かどうかの判定用）
-  // baselineUpdatedAtMs was captured before the create request to avoid missing fast completions
-  
-  // ★OR-Tools用のシンプルなプログレスUI
+
+  // OR-Tools用のシンプルなプログレスUI
   showSimpleProgressUI();
-  
-  while (attempt < maxAttempts) {
-    attempt++;
-    
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // ===== 方法1: Firestoreのschedulesを直接チェック =====
     try {
-      // ★★★ 方法1: Firestoreのschedulesを直接チェック ★★★
       const scheduleDoc = await firestore.collection('schedules').doc(monthKey).get();
-      
       if (scheduleDoc.exists) {
         const data = scheduleDoc.data();
-        
-        // updatedAt/createdAt を確認（新しい結果かどうか）
+
         const ts = data.updatedAt || data.createdAt;
         let updatedAtMs = 0;
         if (ts) {
@@ -3674,57 +3630,49 @@ async function pollJobStatus(jobId, monthKey, baselineUpdatedAtMs = 0) {
         }
 
         if (updatedAtMs > baselineUpdatedAtMs) {
-          console.log('✅ 新しいスケジュールを検出！');
-          console.log('  updatedAtMs:', updatedAtMs, 'baselineUpdatedAtMs:', baselineUpdatedAtMs);
-
+          console.log('✅ 新しいスケジュールを検出（Firestore）');
           updateSimpleProgressUI(100, '完了しました！');
           return data;
         }
       }
+    } catch (e) {
+      console.warn('pollJobStatus: Firestore check failed', e);
     }
-      
-      // ★★★ 方法2: GAS経由でJobQueueもチェック（フォールバック）★★★
-      try {
-        const statusUrl = GAS_API_URL + '?action=checkJob&jobId=' + jobId + '&v=' + new Date().getTime();
-        const statusResult = await callGASWithJSONP(statusUrl);
-        
-        if (statusResult.success && statusResult.status === "completed") {
-          console.log("✅ JobQueue完了を検出");
-          updateSimpleProgressUI(100, '完了しました！');
-          
-          const scheduleUrl = GAS_API_URL + '?action=getSchedule&month=' + monthKey + '&v=' + new Date().getTime();
-          const scheduleResult = await callGASWithJSONP(scheduleUrl);
-          
-          if (scheduleResult.success) {
-            return scheduleResult.data;
-          }
-        } else if (statusResult.status === "failed") {
-          throw new Error("スケジュール生成に失敗しました: " + (statusResult.error || ''));
-        }
-      } catch (gasError) {
-        console.log("GASチェックエラー（続行）:", gasError);
+
+    // ===== 方法2: GAS経由でJobQueueもチェック（フォールバック） =====
+    try {
+      const statusUrl = GAS_API_URL + '?action=checkJob&jobId=' + encodeURIComponent(jobId) + '&v=' + Date.now();
+      const statusResult = await callGASWithJSONP(statusUrl);
+
+      if (statusResult && statusResult.success && statusResult.status === 'completed') {
+        console.log('✅ JobQueue完了を検出（GAS）');
+        updateSimpleProgressUI(100, '完了しました！');
+
+        const scheduleUrl = GAS_API_URL + '?action=getSchedule&month=' + encodeURIComponent(monthKey) + '&v=' + Date.now();
+        const scheduleResult = await callGASWithJSONP(scheduleUrl);
+        if (scheduleResult && scheduleResult.success) return scheduleResult.data;
+
+        throw new Error('完了済みだがスケジュール取得に失敗しました');
       }
-      
-      // ★シンプルな進捗表示
-      const estimatedPercentage = Math.min(40 + (attempt * 0.45), 95);
-      const elapsedSeconds = attempt * interval / 1000;
-      updateSimpleProgressUI(estimatedPercentage, 'OR-Toolsで最適化中... (' + elapsedSeconds + '秒経過)');
-      
-      await sleep(interval);
-      
-    } catch (error) {
-      console.error("ポーリングエラー:", error);
-      
-      if (attempt >= maxAttempts) {
-        throw new Error("タイムアウト: 処理に時間がかかりすぎています");
+
+      if (statusResult && statusResult.status === 'failed') {
+        throw new Error('スケジュール生成に失敗しました: ' + (statusResult.error || ''));
       }
-      
-      await sleep(interval);
+    } catch (gasError) {
+      console.log('GASチェックエラー（続行）:', gasError);
     }
+
+    // 進捗表示（擬似）
+    const estimatedPercentage = Math.min(40 + (attempt * 0.45), 95);
+    const elapsedSeconds = attempt * interval / 1000;
+    updateSimpleProgressUI(estimatedPercentage, 'OR-Toolsで最適化中... (' + elapsedSeconds + '秒経過)');
+
+    await sleep(interval);
   }
-  
-  throw new Error("タイムアウト: 処理が完了しませんでした");
+
+  throw new Error('タイムアウト: 処理が完了しませんでした');
 }
+
 // ★新規関数: シンプルなプログレスUIを表示
 function showSimpleProgressUI() {
 resultsArea.innerHTML = `
