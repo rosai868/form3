@@ -3176,7 +3176,7 @@ if (relaxConstraintsBtn) {
 
       // retry mode
       setLoading(true);
-      statusPanel.style.display = 'block';
+      if (statusPanel) statusPanel.style.display = 'block';
 
       try {
         const scheduleData = await runCreateAndPoll(relaxModalState.monthKey, nextSettings);
@@ -3219,6 +3219,7 @@ if (relaxConstraintsBtn) {
 // ============================================
 
 const generateBtn = document.getElementById('generate-schedule-btn');
+const statusPanel = document.getElementById('progress-status');
 const resultsArea = document.getElementById('schedule-results');
 
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz4E_SmydlpReF1vyieqI6ViCkHMfmVxFF4rEkhBD3JOqNdu0YGe9OI5Oxec5rO4Aeb5g/exec";
@@ -3600,7 +3601,7 @@ generateBtn.addEventListener('click', async function() {
   const monthKey = `${year}-${month}`;
 
   setLoading(true);
-  statusPanel.style.display = 'block';
+  if (statusPanel) statusPanel.style.display = 'block';
 
   try {
     await strictFirstGenerate(monthKey);
