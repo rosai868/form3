@@ -3148,7 +3148,8 @@ try {
 
         if (isScheduleFeasible(scheduleData)) {
           closeRelaxModal();
-          displayScheduleResults(scheduleData);
+          // monthKey を渡さないと displayScheduleResults 内の split で落ちることがある
+          displayScheduleResults(scheduleData, relaxModalState.monthKey);
           return;
         }
 
@@ -3553,7 +3554,8 @@ async function strictFirstGenerate(monthKey) {
   try {
     const scheduleData = await runCreateAndPoll(monthKey, strictBase);
     if (isScheduleFeasible(scheduleData)) {
-      displayScheduleResults(scheduleData);
+      // monthKey を渡さないと displayScheduleResults 内の split で落ちることがある
+      displayScheduleResults(scheduleData, monthKey);
       return;
     }
 
@@ -3798,6 +3800,26 @@ async function displayScheduleResults(data, monthKey) {
 console.log("=== displayScheduleResults 開始 ===");
 console.log("受信データ:", data);
 
+// monthKey が渡らない経路があるため、ここで必ず補完・正規化する
+const inferredMonthKey = (data && (data.monthKey || (data.data && data.data.monthKey))) ||
+                         window.currentMonthKey ||
+                         document.getElementById('monthSelect')?.value ||
+                         document.getElementById('month')?.value;
+if (!monthKey) monthKey = inferredMonthKey;
+if (typeof monthKey !== 'string') monthKey = String(monthKey || '');
+
+let m = monthKey.match(/^(\d{4})-(\d{1,2})$/);
+if (!m) {
+  // 最後の保険: 画面選択や現在日時から推定
+  const now = new Date();
+  const y = now.getFullYear();
+  const mo = now.getMonth() + 1;
+  monthKey = `${y}-${String(mo).padStart(2, '0')}`;
+  m = monthKey.match(/^(\d{4})-(\d{1,2})$/);
+}
+// 1桁月が混ざっても常に YYYY-MM へ
+monthKey = `${m[1]}-${String(parseInt(m[2], 10)).padStart(2, '0')}`;
+
 // ★★★ 希望データを再読み込み ★★★
 try {
     const requestsDoc = await firestore.collection('requests').doc(monthKey).get({ source: 'server' });
@@ -3816,9 +3838,9 @@ currentScheduleData.monthKey = monthKey;
 // ★CSVエクスポート用にグローバル変数に保存
 window.currentMonthKey = monthKey;
 
-const parts = monthKey.split('-');
-const year = parseInt(parts[0]);
-const month = parseInt(parts[1]);
+// monthKey は上で正規化済み（YYYY-MM）
+const year = parseInt(m[1], 10);
+const month = parseInt(m[2], 10);
 currentMonth = new Date(year, month - 1, 1);
 
 // ★★★ 修正: データ構造を確認してdraftを取得 ★★★
