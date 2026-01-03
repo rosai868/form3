@@ -3095,6 +3095,7 @@ closeSwapModal();
 }
 
 console.log('システム初期化完了');
+  wireStrictStartAutoToggle();
 
 // ★★★ 制約設定ボタンのイベントリスナー ★★★
 const constraintToggleBtn = document.getElementById('constraint-toggle-btn');
@@ -3375,6 +3376,36 @@ function setConstraintSettings(settings) {
     if (el) el.checked = !!settings[c.key];
   }
 }
+
+function wireStrictStartAutoToggle() {
+  const strictCb = document.getElementById('strict-start-checkbox');
+  if (!strictCb) return;
+
+  // strict-start をONにしたら、制約チェックを「全ON（希望優先は維持）」へ揃える
+  strictCb.addEventListener('change', () => {
+    if (!strictCb.checked) return;
+    const current = getConstraintValues(); // 既存のUI状態を読む
+    const allOn = buildAllOnConstraintSettings(!!current.requestPriority);
+    setConstraintSettings(allOn);
+  });
+
+  // ユーザーが任意の制約をOFFにしたら、strict-start は自動でOFFにする（「最初から緩和」モードへ）
+  for (const c of CONSTRAINT_META) {
+    const el = document.getElementById(c.checkboxId);
+    if (!el) continue;
+    el.addEventListener('change', () => {
+      if (!el.checked && strictCb.checked) strictCb.checked = false;
+    });
+  }
+
+  // 初期状態の同期（すでにOFFが混じっていたら strict-start をOFF）
+  const anyOff = CONSTRAINT_META.some(c => {
+    const el = document.getElementById(c.checkboxId);
+    return el && !el.checked;
+  });
+  if (anyOff) strictCb.checked = false;
+}
+
 
 function isScheduleFeasible(scheduleData) {
   if (!scheduleData) return false;
@@ -3803,49 +3834,22 @@ return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function formatScoreBreakdown(draft) {
-  // 旧UI互換（現在は displayScheduleResults 内でスコア表示を行う）
-  return '';
-}
-return '';
-}
+  // 注意: v71A系では目的関数（スコア）が複数のペナルティ/ボーナスの合算で大きな値になり得ます。
+  // フロント側で固定の内訳テンプレを表示すると誤解を招くため、ここでは最小限の情報のみ表示します。
+  if (!draft) return '';
 
-const breakdown = draft.score_breakdown;
-let html = '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">';
-html += '<h4 style="margin-top: 0;">📊 スコア計算の内訳</h4>';
-html += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
+  const score = (typeof draft.score === 'number') ? draft.score : 0;
+  const fulfilled = (typeof draft.fulfilled_requests === 'number') ? draft.fulfilled_requests : null;
+  const total = (typeof draft.total_requests === 'number') ? draft.total_requests : null;
 
-// 希望充足スコア
-html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">✅ 希望充足ボーナス</td>';
-html += '<td style="padding: 8px; text-align: right; color: #4CAF50; font-weight: bold;">+' + (breakdown.request_score || 0) + '点</td></tr>';
-
-// 勤務日数ペナルティ
-if (breakdown.work_fairness_penalty) {
-html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">📉 勤務日数の偏り</td>';
-html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.work_fairness_penalty + '点</td></tr>';
-}
-
-// 深夜回数ペナルティ
-if (breakdown.night_fairness_penalty) {
-html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">🌙 深夜回数の偏り</td>';
-html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.night_fairness_penalty + '点</td></tr>';
-}
-
-// 合計
-html += '<tr style="background: #e3f2fd;"><td style="padding: 10px; font-weight: bold;">合計スコア</td>';
-html += '<td style="padding: 10px; text-align: right; font-weight: bold; font-size: 1.3em; color: #1976D2;">' + (draft.score || 0) + '点</td></tr>';
-html += '</table>';
-
-// スコアの目安
-html += '<div style="margin-top: 15px; padding: 10px; background: #fff; border-radius: 4px;">';
-html += '<p style="margin: 0 0 8px 0; font-weight: bold; font-size: 13px;">📈 スコアの目安:</p>';
-html += '<div style="font-size: 12px;">';
-html += '<span style="color: #4CAF50;">■+100以上:非常に良い</span> ';
-html += '<span style="color: #8BC34A;">■+50〜100:良い</span> ';
-html += '<span style="color: #FFC107;">■+20〜50:普通</span> ';
-html += '<span style="color: #F44336;">■マイナス:要改善</span>';
-html += '</div></div></div>';
-
-return html;
+  let html = '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+  html += '<h4 style="margin-top: 0;">📊 スコア: ' + score + '点</h4>';
+  if (fulfilled !== null && total !== null) {
+    html += '<p style="font-size: 0.9em; color: #666;">希望一致: ' + fulfilled + '/' + total + '件</p>';
+  }
+  html += '<p style="font-size: 12px; color: #555; margin: 6px 0 0 0;">スコアは同一月・同一条件での相対比較用です。高いほど良い。</p>';
+  html += '</div>';
+  return html;
 }
 
 async function displayScheduleResults(data, monthKey) {
@@ -3933,14 +3937,12 @@ window.currentStaffListForCSV = staffListForAdmin;
 
 // 結果ヘッダー
 const score = draft.score || data.score;
-const execTime = draft.elapsedTime || data.execution_time;
+const execTime = (typeof draft.execution_time === 'number') ? draft.execution_time
+                 : (typeof draft.elapsedTime === 'number') ? draft.elapsedTime
+                 : (typeof data.elapsedTime === 'number') ? data.elapsedTime
+                 : (typeof data.execution_time === 'number') ? data.execution_time
+                 : null;
 const attempts = draft.attempts || data.attempt || 1;
-
-// ============================================================
-// index.html の displayScheduleResults 関数内を修正
-// 2522行目〜2527行目付近を以下に置き換え
-// ============================================================
-
 let statusHtml = '<div style="background: #E8F5E9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">';
 statusHtml += '<h4 style="color: #2E7D32;"><i class="fas fa-check-circle"></i> 作成完了</h4>';
 statusHtml += '<p style="font-size: 13px; color: #555;">計算時間: ' + (execTime ? parseFloat(execTime).toFixed(2) : '?') + '秒 / 試行回数: ' + attempts + '</p>';
@@ -3950,8 +3952,6 @@ statusHtml += '</div>';
 const finalScore = (typeof draft.score === 'number') ? draft.score : 0;
 const fulfilledReqs = (typeof draft.fulfilled_requests === 'number') ? draft.fulfilled_requests : null;
 const totalReqs = (typeof draft.total_requests === 'number') ? draft.total_requests : null;
-const execTime = (typeof draft.execution_time === 'number') ? draft.execution_time : null;
-
 // どの制約を緩和して解を得たか（GAS側が入れていれば表示）
 const relaxedList = Array.isArray(draft.relaxed_constraints) ? draft.relaxed_constraints : [];
 const relaxationNote = (typeof draft.relaxation_message === 'string') ? draft.relaxation_message : '';
