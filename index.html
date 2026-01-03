@@ -3131,11 +3131,17 @@ if (relaxConstraintsBtn) {
     relaxApplyBtn.addEventListener('click', async () => {
       if (!relaxModalState) return;
 
-      const nextSettings = getRelaxSelectionFromModal(relaxModalState.baseSettings);
+      // Snapshot state so async errors do not crash if the modal is closed mid-run
+      const stateSnapshot = JSON.parse(JSON.stringify(relaxModalState));
+      const monthKeySnapshot = stateSnapshot.monthKey;
+      const baseSettingsSnapshot = stateSnapshot.baseSettings || getConstraintSettings();
+      const originalUISettingsSnapshot = stateSnapshot.originalUISettings || getConstraintSettings();
+
+const nextSettings = getRelaxSelectionFromModal(baseSettingsSnapshot);
       setConstraintSettings(nextSettings);
 
       // edit mode: apply only
-      if (relaxModalState.mode === 'edit') {
+      if (stateSnapshot.mode === 'edit') {
         closeRelaxModal();
         return;
       }
@@ -3144,12 +3150,12 @@ if (relaxConstraintsBtn) {
       setLoading(true);
       setStatusPanelVisible(true);
 try {
-        const scheduleData = await runCreateAndPoll(relaxModalState.monthKey, nextSettings);
+        const scheduleData = await runCreateAndPoll(monthKeySnapshot, nextSettings);
 
         if (isScheduleFeasible(scheduleData)) {
           closeRelaxModal();
           // monthKey を渡さないと displayScheduleResults 内の split で落ちることがある
-          displayScheduleResults(scheduleData, relaxModalState.monthKey);
+          displayScheduleResults(scheduleData, monthKeySnapshot);
           return;
         }
 
@@ -3159,10 +3165,10 @@ try {
           title: '全条件では解が見つかりませんでした',
           message: 'どの条件を緩和するか選択して再試行します。',
           errorText: failureText,
-          baseSettings: relaxModalState.baseSettings,
+          baseSettings: baseSettingsSnapshot,
           currentSettings: nextSettings,
-          monthKey: relaxModalState.monthKey,
-          originalUISettings: relaxModalState.originalUISettings
+          monthKey: monthKeySnapshot,
+          originalUISettings: originalUISettingsSnapshot
         });
       } catch (err) {
         openRelaxModal({
