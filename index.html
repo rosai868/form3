@@ -3594,8 +3594,8 @@ async function strictFirstGenerate(monthKey) {
 }
 
 generateBtn.addEventListener('click', async function() {
-  const year = yearSelect.value;
-  const month = monthSelect.value.padStart(2, '0');
+  const year = String(currentMonth.getFullYear());
+  const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
   const monthKey = `${year}-${month}`;
 
   setLoading(true);
