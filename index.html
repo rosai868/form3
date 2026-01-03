@@ -663,6 +663,12 @@ font-size: 10px;
 <i class="fas fa-file-pdf"></i> PDF出力
 </button>
 </div>
+<div style="margin-top: 8px; font-size: 12px; color: #555;">
+  <label style="cursor: pointer;">
+    <input type="checkbox" id="startWithAllConstraints" checked style="margin-right: 6px;">
+    最初は全条件ONで試す（見つからない場合に緩和を選択）
+  </label>
+</div>
 <div id="schedule-results" style="margin-top: 20px;"></div>
 </div>
 <div style="margin-top: 30px; padding: 20px; background: #F8F8F8; border: 1px solid #F0EAE4; border-radius: 8px; font-size: 13px; color: #777;">
@@ -1051,14 +1057,14 @@ table += '<tr>';
 table += '<th style="color: #333;">職員名</th>';
 table += '<th style="color: #333;">チーム</th>';
 table += '<th style="background: #E8F5E9; color: #333;">日</th>';
-table += '<th style="background: #E1F5FE; color: #333;">準</th>';
 table += '<th style="background: #E8EAF6; color: #333;">深</th>';
-table += '<th style="background: #FFF3E0; color: #333;">準+深</th>';
-table += '<th style="background: #FFEBEE; color: #333;" title="法定休日（平日の年・特・夏を除く）">法休</th>';
+table += '<th style="background: #E1F5FE; color: #333;">準</th>';
+table += '<th style="background: #FFF3E0; color: #333;">夜勤計</th>';
+table += '<th style="background: #FFEBEE; color: #333;" title="法定休日（平日の年・特・夏を除く）">休日</th>';
 table += '<th style="background: #BBDEFB; color: #333;">年</th>';
 table += '<th style="background: #C8E6C9; color: #333;">特</th>';
-table += '<th style="background: #FFE0B2; color: #333;">夏</th>';
 table += '<th style="background: #E1BEE7; color: #333;">出</th>';
+table += '<th style="background: #FFE0B2; color: #333;">夏</th>';
 table += '<th style="background: #B2EBF2; color: #333;">AM</th>';
 table += '<th style="background: #F0F4C3; color: #333;">PM</th>';
 table += '<th style="background: #D7CCC8; color: #333;">ケP4</th>';
@@ -1223,8 +1229,8 @@ const hasError = !isExempt && legalRestCount !== legalRestDays;
 const legalRestStyle = hasError ? 'background: #FFCDD2; color: #C62828; font-weight: bold;' : 'background: #FFEBEE;';
 
 row += '<td style="background: #E8F5E9;">' + dayCount + '</td>';
-row += '<td style="background: #E1F5FE;">' + eveningCount + '</td>';
 row += '<td style="background: #E8EAF6;">' + nightCount + '</td>';
+row += '<td style="background: #E1F5FE;">' + eveningCount + '</td>';
 
 const nightTotalBg = nightTotal > 8 ? '#FFCDD2' : '#FFF3E0';
 row += '<td style="background: ' + nightTotalBg + '; font-weight: bold;">' + nightTotal + '</td>';
@@ -1232,8 +1238,8 @@ row += '<td style="background: ' + nightTotalBg + '; font-weight: bold;">' + nig
 row += '<td style="' + legalRestStyle + '">' + legalRestCount + '</td>';
 row += '<td style="background: #BBDEFB;">' + yearCount + '</td>';
 row += '<td style="background: #C8E6C9;">' + specialCount + '</td>';
-row += '<td style="background: #FFE0B2;">' + summerCount + '</td>';
 row += '<td style="background: #E1BEE7;">' + tripCount + '</td>';
+row += '<td style="background: #FFE0B2;">' + summerCount + '</td>';
 row += '<td style="background: #B2EBF2;">' + amCount + '</td>';
 row += '<td style="background: #F0F4C3;">' + pmCount + '</td>';
 row += '<td style="background: #D7CCC8;">' + kp4Count + '</td>';
@@ -3553,12 +3559,23 @@ async function runCreateAndPoll(monthKey, settings) {
 async function strictFirstGenerate(monthKey) {
   const originalUI = getConstraintSettings();
 
-  // まずは全条件ON（厳格）で探索
-  const strictBase = buildAllOnConstraintSettings(originalUI.requestPriority);
-  setConstraintSettings(strictBase);
+  // 初回を「全条件ONで探索」か「現在のチェック状態で探索」かを選べる
+  const startAllEl = document.getElementById('startWithAllConstraints');
+  const startWithAll = startAllEl ? !!startAllEl.checked : true;
+  const baseSettings = startWithAll
+    ? buildAllOnConstraintSettings(originalUI.requestPriority)
+    : originalUI;
+
+  // UI反映（全条件ONで探索する場合のみ）
+  if (startWithAll) {
+    setConstraintSettings(baseSettings);
+  }
+
+  // 保存しておく（緩和モーダルで参照）
+  window.__lastStrictBaseSettings = baseSettings;
 
   try {
-    const scheduleData = await runCreateAndPoll(monthKey, strictBase);
+    const scheduleData = await runCreateAndPoll(monthKey, baseSettings);
     if (isScheduleFeasible(scheduleData)) {
       // monthKey を渡さないと displayScheduleResults 内の split で落ちることがある
       displayScheduleResults(scheduleData, monthKey);
@@ -3572,8 +3589,8 @@ async function strictFirstGenerate(monthKey) {
       title: '全条件では解が見つかりませんでした',
       message: 'どの条件を緩和するか選択して再試行します。',
       errorText: failureText,
-      baseSettings: strictBase,
-      currentSettings: strictBase,
+      baseSettings: baseSettings,
+      currentSettings: baseSettings,
       monthKey,
       originalUISettings: originalUI
     });
@@ -3583,8 +3600,8 @@ async function strictFirstGenerate(monthKey) {
       title: '生成に失敗しました',
       message: '通信エラーまたはバックエンドエラーです。必要に応じて条件を緩和して再試行できます。',
       errorText: err?.message || String(err),
-      baseSettings: strictBase,
-      currentSettings: strictBase,
+      baseSettings: baseSettings,
+      currentSettings: baseSettings,
       monthKey,
       originalUISettings: originalUI
     });
@@ -3751,55 +3768,64 @@ return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function formatScoreBreakdown(draft) {
-// score_breakdown がない場合
-if (!draft || !draft.score_breakdown) {
-if (draft && typeof draft.score !== 'undefined') {
-let html = '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">';
-html += '<h4 style="margin-top: 0;">📊 スコア: ' + draft.score + '点</h4>';
-html += '<p style="font-size: 0.9em; color: #666;">希望充足: ' + (draft.fulfilled_requests || '?') + '/' + (draft.total_requests || '?') + '件</p>';
-html += '</div>';
-return html;
-}
-return '';
-}
+  // 内訳データ（score_breakdown）が返ってきた場合だけ表示する
+  if (!draft || !draft.score_breakdown || typeof draft.score_breakdown !== 'object') {
+    return '';
+  }
 
-const breakdown = draft.score_breakdown;
-let html = '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">';
-html += '<h4 style="margin-top: 0;">📊 スコア計算の内訳</h4>';
-html += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
+  const breakdown = draft.score_breakdown;
 
-// 希望充足スコア
-html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">✅ 希望充足ボーナス</td>';
-html += '<td style="padding: 8px; text-align: right; color: #4CAF50; font-weight: bold;">+' + (breakdown.request_score || 0) + '点</td></tr>';
+  const keyLabels = {
+    request_score: '希望達成',
+    request_penalty: '希望違反（ペナルティ）',
+    work_fairness_penalty: '勤務日数の偏り（ペナルティ）',
+    night_fairness_penalty: '深夜回数の偏り（ペナルティ）',
+    set_bonus: 'セットボーナス',
+    team_balance_penalty: 'チームバランス（ペナルティ）',
+    leader_penalty: 'リーダー要件（ペナルティ）',
+    pattern_bonus: 'パターンボーナス'
+  };
 
-// 勤務日数ペナルティ
-if (breakdown.work_fairness_penalty) {
-html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">📉 勤務日数の偏り</td>';
-html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.work_fairness_penalty + '点</td></tr>';
-}
+  const fmt = (v) => {
+    if (typeof v !== 'number' || isNaN(v)) return String(v);
+    const abs = Math.abs(v);
+    const s = abs >= 1000 ? Math.round(v).toLocaleString() : (Math.round(v * 100) / 100).toString();
+    return (v > 0 ? '+' : '') + s;
+  };
 
-// 深夜回数ペナルティ
-if (breakdown.night_fairness_penalty) {
-html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">🌙 深夜回数の偏り</td>';
-html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.night_fairness_penalty + '点</td></tr>';
-}
+  let html = '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+  html += '<h4 style="margin-top: 0;">📊 スコア内訳（利用可能な場合）</h4>';
+  html += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
 
-// 合計
-html += '<tr style="background: #e3f2fd;"><td style="padding: 10px; font-weight: bold;">合計スコア</td>';
-html += '<td style="padding: 10px; text-align: right; font-weight: bold; font-size: 1.3em; color: #1976D2;">' + (draft.score || 0) + '点</td></tr>';
-html += '</table>';
+  // 内訳をキー順に表示（未定義キーも表示）
+  const keys = Object.keys(breakdown);
+  keys.sort();
+  keys.forEach((k) => {
+    const v = breakdown[k];
+    if (typeof v !== 'number') return;
 
-// スコアの目安
-html += '<div style="margin-top: 15px; padding: 10px; background: #fff; border-radius: 4px;">';
-html += '<p style="margin: 0 0 8px 0; font-weight: bold; font-size: 13px;">📈 スコアの目安:</p>';
-html += '<div style="font-size: 12px;">';
-html += '<span style="color: #4CAF50;">■+100以上:非常に良い</span> ';
-html += '<span style="color: #8BC34A;">■+50〜100:良い</span> ';
-html += '<span style="color: #FFC107;">■+20〜50:普通</span> ';
-html += '<span style="color: #F44336;">■マイナス:要改善</span>';
-html += '</div></div></div>';
+    const label = keyLabels[k] || k;
+    const color = v >= 0 ? '#4CAF50' : '#F44336';
 
-return html;
+    html += '<tr style="border-bottom: 1px solid #ddd;">';
+    html += '<td style="padding: 8px;">' + label + '</td>';
+    html += '<td style="padding: 8px; text-align: right; color: ' + color + '; font-weight: bold;">' + fmt(v) + '点</td>';
+    html += '</tr>';
+  });
+
+  // 合計
+  html += '<tr style="background: #e3f2fd;">';
+  html += '<td style="padding: 10px; font-weight: bold;">合計スコア</td>';
+  html += '<td style="padding: 10px; text-align: right; font-weight: bold; font-size: 1.2em; color: #1976D2;">' + (draft.score ?? 0) + '点</td>';
+  html += '</tr>';
+  html += '</table>';
+
+  html += '<div style="margin-top: 8px; font-size: 12px; color: #777;">';
+  html += '※ 内訳項目はバックエンド実装により変化します。内訳がない場合は非表示です。';
+  html += '</div>';
+
+  html += '</div>';
+  return html;
 }
 
 async function displayScheduleResults(data, monthKey) {
@@ -3909,34 +3935,30 @@ const finalScore = score || data.score || draft.score || 0;
 
 statusHtml += '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">';
 statusHtml += '<h4 style="margin-top: 0; color: #333;">📊 スコア計算の内訳</h4>';
-statusHtml += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
+statusHtml += '<table style="width: 100%; border-collapse: collapse;">';
 
-// 希望充足（REQUEST_WEIGHT = 2）
-const requestScore = scoreBreakdown ? scoreBreakdown.request_score : (fulfilledReqs * 2);
-statusHtml += '<tr style="border-bottom: 1px solid #ddd;">';
-statusHtml += '<td style="padding: 8px;">✅ 希望充足ボーナス (' + fulfilledReqs + '/' + totalReqs + '件 × 2点)</td>';
-statusHtml += '<td style="padding: 8px; text-align: right; color: #4CAF50; font-weight: bold;">+' + requestScore + '点</td>';
-statusHtml += '</tr>';
-
-// 勤務日数ペナルティ
-if (scoreBreakdown && scoreBreakdown.work_fairness_penalty !== 0) {
-statusHtml += '<tr style="border-bottom: 1px solid #ddd;">';
-statusHtml += '<td style="padding: 8px;">📉 勤務日数の偏りペナルティ</td>';
-statusHtml += '<td style="padding: 8px; text-align: right; color: #F44336; font-weight: bold;">' + scoreBreakdown.work_fairness_penalty + '点</td>';
-statusHtml += '</tr>';
+// 方式
+if (draft && draft.type) {
+  statusHtml += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">方式</td>';
+  statusHtml += '<td style="padding: 8px; text-align: right;">' + draft.type + '</td></tr>';
 }
 
-// 深夜回数ペナルティ
-if (scoreBreakdown && scoreBreakdown.night_fairness_penalty !== 0) {
-statusHtml += '<tr style="border-bottom: 1px solid #ddd;">';
-statusHtml += '<td style="padding: 8px;">🌙 深夜回数の偏りペナルティ</td>';
-statusHtml += '<td style="padding: 8px; text-align: right; color: #F44336; font-weight: bold;">' + scoreBreakdown.night_fairness_penalty + '点</td>';
-statusHtml += '</tr>';
+// 試行回数・計算時間
+if (draft && typeof draft.attempts !== 'undefined') {
+  statusHtml += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">試行回数</td>';
+  statusHtml += '<td style="padding: 8px; text-align: right;">' + draft.attempts + '</td></tr>';
+}
+if (draft && typeof draft.elapsedTime !== 'undefined') {
+  statusHtml += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">計算時間</td>';
+  statusHtml += '<td style="padding: 8px; text-align: right;">' + (Math.round(draft.elapsedTime * 100) / 100) + ' 秒</td></tr>';
 }
 
-// 長田タイプの高優先希望（NAGATA_REQUEST_WEIGHT = 50）があれば表示
-// （これはscoreBreakdownに含まれていないが、スコアに反映されている）
-
+// 希望達成（件数のみ）
+if (typeof fulfilledReqs === 'number' && typeof totalReqs === 'number' && totalReqs > 0) {
+  const pct = Math.round((fulfilledReqs / totalReqs) * 100);
+  statusHtml += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">希望達成</td>';
+  statusHtml += '<td style="padding: 8px; text-align: right;">' + fulfilledReqs + '/' + totalReqs + '件（' + pct + '%）</td></tr>';
+}
 // 合計
 statusHtml += '<tr style="background: #e3f2fd;">';
 statusHtml += '<td style="padding: 10px; font-weight: bold;">合計スコア</td>';
@@ -3944,29 +3966,44 @@ statusHtml += '<td style="padding: 10px; text-align: right; font-weight: bold; f
 statusHtml += '</tr>';
 statusHtml += '</table>';
 
-// スコアの目安
-statusHtml += '<div style="margin-top: 15px; padding: 10px; background: #fff; border-radius: 4px;">';
-statusHtml += '<p style="margin: 0 0 8px 0; font-weight: bold; font-size: 13px;">📈 スコアの目安:</p>';
-statusHtml += '<div style="font-size: 12px;">';
-statusHtml += '<span style="color: #4CAF50;">■+200以上:非常に良い</span> ';
-statusHtml += '<span style="color: #8BC34A;">■+100〜200:良い</span> ';
-statusHtml += '<span style="color: #FFC107;">■+50〜100:普通</span> ';
-statusHtml += '<span style="color: #F44336;">■マイナス:要改善</span>';
-statusHtml += '</div></div>';
+// 参考（正規化スコア）
+const daysInMonth = (() => {
+  try {
+    const parts = String(monthKey || '').split('-');
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (!y || !m) return null;
+    return new Date(y, m, 0).getDate();
+  } catch (e) {
+    return null;
+  }
+})();
+const staffCount = actualSchedule ? Object.keys(actualSchedule).length : 0;
+const perPersonPerDay = (daysInMonth && staffCount) ? (finalScore / (daysInMonth * staffCount)) : null;
 
-// 計算式の説明
+statusHtml += '<div style="margin-top: 12px; padding: 10px; background: #fff; border-radius: 4px; font-size: 12px; color: #555;">';
+statusHtml += '<div style="font-weight: bold; margin-bottom: 6px;">📈 スコアの見方</div>';
+statusHtml += '<div>スコアは相対指標で、高いほど良いです。同じ月・同じ制約設定で比較してください。</div>';
+if (perPersonPerDay !== null) {
+  statusHtml += '<div style="margin-top: 6px;">正規化（1人×1日あたり）: <strong>' + perPersonPerDay.toFixed(2) + '</strong> 点</div>';
+}
+statusHtml += '</div>';
+
+// 算定要素（概要）
 statusHtml += '<details style="margin-top: 10px;">';
-statusHtml += '<summary style="cursor: pointer; font-size: 12px; color: #666;">計算式の詳細を見る</summary>';
+statusHtml += '<summary style="cursor: pointer; font-size: 12px; color: #666;">スコア算定の概要を見る</summary>';
 statusHtml += '<div style="margin-top: 8px; padding: 10px; background: #fff; border-radius: 4px; font-size: 12px; color: #555;">';
-statusHtml += '<p style="margin: 5px 0;"><strong>希望充足:</strong> 叶った希望数 × 2点</p>';
-statusHtml += '<p style="margin: 5px 0;"><strong>勤務日数ペナルティ:</strong> |実際の勤務日数 - 20日| × 1点（各スタッフごと）</p>';
-statusHtml += '<p style="margin: 5px 0;"><strong>深夜回数ペナルティ:</strong> |実際の深夜回数 - 6回| × 1点（各スタッフごと）</p>';
-statusHtml += '<p style="margin: 5px 0;"><strong>日勤専従者の希望:</strong> 叶った希望 × 50点（通常より高優先）</p>';
+statusHtml += '<ul style="margin: 6px 0 0 18px; padding: 0;">';
+statusHtml += '<li>希望（年休、日勤、AM/PM、出張など）の達成</li>';
+statusHtml += '<li>セット（準・深の並び）の採用ボーナス</li>';
+statusHtml += '<li>休日のチーム偏り、夜勤リーダー不在などのペナルティ</li>';
+statusHtml += '<li>ハード希望（休・特・夏・出など）の違反は大きく減点</li>';
+statusHtml += '</ul>';
+statusHtml += '<div style="margin-top: 8px; color: #777;">※ 係数はバックエンドの最適化設定に依存し、月・人数でスケールが変わります。</div>';
 statusHtml += '</div>';
 statusHtml += '</details>';
 
 statusHtml += '</div>';
-
 resultsArea.innerHTML = statusHtml;
 // ★★★ スコア内訳を追加 ★★★
 const scoreBreakdownHtml = formatScoreBreakdown(draft);
