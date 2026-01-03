@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+<link rel="icon" href="data:,">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>7西シフト希望</title>
@@ -3735,6 +3736,28 @@ progressBar.textContent = Math.round(percentage) + '%';
 if (statusEl) {
 statusEl.innerHTML = '<span class="spinner"></span> ' + message;
 }
+}
+
+
+
+// ===== Loading / UI lock helper =====
+function setLoading(isLoading, message) {
+  const btnIds = ['generate-schedule-btn', 'load-schedule-btn', 'export-json-btn'];
+  btnIds.forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.disabled = !!isLoading;
+  });
+
+  // Progress panel
+  if (isLoading) {
+    if (typeof showSimpleProgressUI === 'function') showSimpleProgressUI();
+    if (typeof updateProgressStatus === 'function') {
+      updateProgressStatus(message || '処理中…');
+    }
+  } else {
+    const statusEl = document.getElementById('progress-status');
+    if (statusEl) statusEl.style.display = 'none';
+  }
 }
 
 function sleep(ms) {
