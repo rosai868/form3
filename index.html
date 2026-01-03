@@ -649,6 +649,17 @@ font-size: 10px;
 </div>
 </div>
 </div>
+
+<div style="margin: 6px 0 10px 0; font-size: 12px; color: #555;">
+  <label style="cursor: pointer; user-select: none;">
+    <input type="checkbox" id="strict-start-checkbox" checked style="margin-right: 6px; transform: translateY(1px);">
+    厳格開始（まず全条件ONで試行し、見つからなければ緩和選択へ）
+  </label>
+  <div style="margin-top: 4px; color: #777; font-size: 11px;">
+    ※このチェックを外すと、現在のチェック状態（緩和した状態）から開始します。
+  </div>
+</div>
+
 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
 <button id="generate-schedule-btn" style="background: #00897B; flex: 1;">
 <i class="fas fa-magic"></i> 新規作成
@@ -662,12 +673,6 @@ font-size: 10px;
 <button onclick="exportScheduleToPDF()" style="background: #E53935; flex: 1;">
 <i class="fas fa-file-pdf"></i> PDF出力
 </button>
-</div>
-<div style="margin-top: 8px; font-size: 12px; color: #555;">
-  <label style="cursor: pointer;">
-    <input type="checkbox" id="startWithAllConstraints" checked style="margin-right: 6px;">
-    最初は全条件ONで試す（見つからない場合に緩和を選択）
-  </label>
 </div>
 <div id="schedule-results" style="margin-top: 20px;"></div>
 </div>
@@ -1060,7 +1065,7 @@ table += '<th style="background: #E8F5E9; color: #333;">日</th>';
 table += '<th style="background: #E8EAF6; color: #333;">深</th>';
 table += '<th style="background: #E1F5FE; color: #333;">準</th>';
 table += '<th style="background: #FFF3E0; color: #333;">夜勤計</th>';
-table += '<th style="background: #FFEBEE; color: #333;" title="法定休日（平日の年・特・夏を除く）">休日</th>';
+table += '<th style="background: #FFEBEE; color: #333;" title="法定休日（シフト記号: 休）">休日</th>';
 table += '<th style="background: #BBDEFB; color: #333;">年</th>';
 table += '<th style="background: #C8E6C9; color: #333;">特</th>';
 table += '<th style="background: #E1BEE7; color: #333;">出</th>';
@@ -3559,23 +3564,12 @@ async function runCreateAndPoll(monthKey, settings) {
 async function strictFirstGenerate(monthKey) {
   const originalUI = getConstraintSettings();
 
-  // 初回を「全条件ONで探索」か「現在のチェック状態で探索」かを選べる
-  const startAllEl = document.getElementById('startWithAllConstraints');
-  const startWithAll = startAllEl ? !!startAllEl.checked : true;
-  const baseSettings = startWithAll
-    ? buildAllOnConstraintSettings(originalUI.requestPriority)
-    : originalUI;
-
-  // UI反映（全条件ONで探索する場合のみ）
-  if (startWithAll) {
-    setConstraintSettings(baseSettings);
-  }
-
-  // 保存しておく（緩和モーダルで参照）
-  window.__lastStrictBaseSettings = baseSettings;
+  // まずは全条件ON（厳格）で探索
+  const strictBase = buildAllOnConstraintSettings(originalUI.requestPriority);
+  setConstraintSettings(strictBase);
 
   try {
-    const scheduleData = await runCreateAndPoll(monthKey, baseSettings);
+    const scheduleData = await runCreateAndPoll(monthKey, strictBase);
     if (isScheduleFeasible(scheduleData)) {
       // monthKey を渡さないと displayScheduleResults 内の split で落ちることがある
       displayScheduleResults(scheduleData, monthKey);
@@ -3589,8 +3583,8 @@ async function strictFirstGenerate(monthKey) {
       title: '全条件では解が見つかりませんでした',
       message: 'どの条件を緩和するか選択して再試行します。',
       errorText: failureText,
-      baseSettings: baseSettings,
-      currentSettings: baseSettings,
+      baseSettings: strictBase,
+      currentSettings: strictBase,
       monthKey,
       originalUISettings: originalUI
     });
@@ -3600,33 +3594,63 @@ async function strictFirstGenerate(monthKey) {
       title: '生成に失敗しました',
       message: '通信エラーまたはバックエンドエラーです。必要に応じて条件を緩和して再試行できます。',
       errorText: err?.message || String(err),
-      baseSettings: baseSettings,
-      currentSettings: baseSettings,
+      baseSettings: strictBase,
+      currentSettings: strictBase,
       monthKey,
       originalUISettings: originalUI
     });
   }
 }
 
+
+async function relaxedStartGenerate(monthKey) {
+  // 現在のチェック状態（緩和した条件）をそのまま初期条件として使う
+  const baseSettings = getConstraintSettings();
+  lastStrictBaseSettings = { ...baseSettings };
+  currentRelaxedSettings = { ...baseSettings };
+
+  const result = await attemptCreateSchedule(baseSettings, monthKey);
+
+  if (result && result.ok) {
+    await pollUntilDoneAndRender(monthKey);
+    return;
+  }
+
+  // infeasible / timeout / failed → 追加で緩和させる
+  openRelaxModal({
+    mode: 'create',
+    title: '解が見つかりませんでした（この条件のまま追加で緩和できます）',
+    message: result?.message || 'この条件では解が見つかりませんでした。緩和する条件を選んで再試行してください。',
+    baseSettings: baseSettings,
+    currentSettings: { ...baseSettings },
+    monthKey: monthKey,
+    originalUISettings: { ...baseSettings }
+  });
+}
+
+
+
+
 generateBtn.addEventListener('click', async function() {
   const year = String(currentMonth.getFullYear());
   const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
   const monthKey = `${year}-${month}`;
 
+  const strictStart = document.getElementById('strict-start-checkbox')?.checked !== false;
+
   setLoading(true);
   setStatusPanelVisible(true);
-try {
-    await strictFirstGenerate(monthKey);
+
+  try {
+    if (strictStart) {
+      await strictFirstGenerate(monthKey);
+    } else {
+      await relaxedStartGenerate(monthKey);
+    }
   } finally {
     setLoading(false);
   }
 });
-
-
-
-
-
-
 async function pollJobStatus(jobId, monthKey, baselineUpdatedAtMs = 0) {
   const maxAttempts = 120; // 10分 (5秒×120)
   const interval = 5000;
@@ -3763,69 +3787,65 @@ function setLoading(isLoading, message) {
   }
 }
 
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+
 function sleep(ms) {
 return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function formatScoreBreakdown(draft) {
-  // 内訳データ（score_breakdown）が返ってきた場合だけ表示する
-  if (!draft || !draft.score_breakdown || typeof draft.score_breakdown !== 'object') {
-    return '';
-  }
+  // 旧UI互換（現在は displayScheduleResults 内でスコア表示を行う）
+  return '';
+}
+return '';
+}
 
-  const breakdown = draft.score_breakdown;
+const breakdown = draft.score_breakdown;
+let html = '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+html += '<h4 style="margin-top: 0;">📊 スコア計算の内訳</h4>';
+html += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
 
-  const keyLabels = {
-    request_score: '希望達成',
-    request_penalty: '希望違反（ペナルティ）',
-    work_fairness_penalty: '勤務日数の偏り（ペナルティ）',
-    night_fairness_penalty: '深夜回数の偏り（ペナルティ）',
-    set_bonus: 'セットボーナス',
-    team_balance_penalty: 'チームバランス（ペナルティ）',
-    leader_penalty: 'リーダー要件（ペナルティ）',
-    pattern_bonus: 'パターンボーナス'
-  };
+// 希望充足スコア
+html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">✅ 希望充足ボーナス</td>';
+html += '<td style="padding: 8px; text-align: right; color: #4CAF50; font-weight: bold;">+' + (breakdown.request_score || 0) + '点</td></tr>';
 
-  const fmt = (v) => {
-    if (typeof v !== 'number' || isNaN(v)) return String(v);
-    const abs = Math.abs(v);
-    const s = abs >= 1000 ? Math.round(v).toLocaleString() : (Math.round(v * 100) / 100).toString();
-    return (v > 0 ? '+' : '') + s;
-  };
+// 勤務日数ペナルティ
+if (breakdown.work_fairness_penalty) {
+html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">📉 勤務日数の偏り</td>';
+html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.work_fairness_penalty + '点</td></tr>';
+}
 
-  let html = '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">';
-  html += '<h4 style="margin-top: 0;">📊 スコア内訳（利用可能な場合）</h4>';
-  html += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
+// 深夜回数ペナルティ
+if (breakdown.night_fairness_penalty) {
+html += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">🌙 深夜回数の偏り</td>';
+html += '<td style="padding: 8px; text-align: right; color: #F44336;">' + breakdown.night_fairness_penalty + '点</td></tr>';
+}
 
-  // 内訳をキー順に表示（未定義キーも表示）
-  const keys = Object.keys(breakdown);
-  keys.sort();
-  keys.forEach((k) => {
-    const v = breakdown[k];
-    if (typeof v !== 'number') return;
+// 合計
+html += '<tr style="background: #e3f2fd;"><td style="padding: 10px; font-weight: bold;">合計スコア</td>';
+html += '<td style="padding: 10px; text-align: right; font-weight: bold; font-size: 1.3em; color: #1976D2;">' + (draft.score || 0) + '点</td></tr>';
+html += '</table>';
 
-    const label = keyLabels[k] || k;
-    const color = v >= 0 ? '#4CAF50' : '#F44336';
+// スコアの目安
+html += '<div style="margin-top: 15px; padding: 10px; background: #fff; border-radius: 4px;">';
+html += '<p style="margin: 0 0 8px 0; font-weight: bold; font-size: 13px;">📈 スコアの目安:</p>';
+html += '<div style="font-size: 12px;">';
+html += '<span style="color: #4CAF50;">■+100以上:非常に良い</span> ';
+html += '<span style="color: #8BC34A;">■+50〜100:良い</span> ';
+html += '<span style="color: #FFC107;">■+20〜50:普通</span> ';
+html += '<span style="color: #F44336;">■マイナス:要改善</span>';
+html += '</div></div></div>';
 
-    html += '<tr style="border-bottom: 1px solid #ddd;">';
-    html += '<td style="padding: 8px;">' + label + '</td>';
-    html += '<td style="padding: 8px; text-align: right; color: ' + color + '; font-weight: bold;">' + fmt(v) + '点</td>';
-    html += '</tr>';
-  });
-
-  // 合計
-  html += '<tr style="background: #e3f2fd;">';
-  html += '<td style="padding: 10px; font-weight: bold;">合計スコア</td>';
-  html += '<td style="padding: 10px; text-align: right; font-weight: bold; font-size: 1.2em; color: #1976D2;">' + (draft.score ?? 0) + '点</td>';
-  html += '</tr>';
-  html += '</table>';
-
-  html += '<div style="margin-top: 8px; font-size: 12px; color: #777;">';
-  html += '※ 内訳項目はバックエンド実装により変化します。内訳がない場合は非表示です。';
-  html += '</div>';
-
-  html += '</div>';
-  return html;
+return html;
 }
 
 async function displayScheduleResults(data, monthKey) {
@@ -3926,88 +3946,53 @@ statusHtml += '<h4 style="color: #2E7D32;"><i class="fas fa-check-circle"></i> �
 statusHtml += '<p style="font-size: 13px; color: #555;">計算時間: ' + (execTime ? parseFloat(execTime).toFixed(2) : '?') + '秒 / 試行回数: ' + attempts + '</p>';
 statusHtml += '</div>';
 
-// ★★★ スコア内訳を表示 ★★★
-// dataとdraftの両方から値を取得（どちらに入っているか不明なため）
-const fulfilledReqs = data.fulfilled_requests || draft.fulfilled_requests || 0;
-const totalReqs = data.total_requests || draft.total_requests || 0;
-const scoreBreakdown = data.score_breakdown || draft.score_breakdown || null;
-const finalScore = score || data.score || draft.score || 0;
+// ★★★ スコア/概要パネル（新スコア方式） ★★★
+const finalScore = (typeof draft.score === 'number') ? draft.score : 0;
+const fulfilledReqs = (typeof draft.fulfilled_requests === 'number') ? draft.fulfilled_requests : null;
+const totalReqs = (typeof draft.total_requests === 'number') ? draft.total_requests : null;
+const execTime = (typeof draft.execution_time === 'number') ? draft.execution_time : null;
 
-statusHtml += '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">';
-statusHtml += '<h4 style="margin-top: 0; color: #333;">📊 スコア計算の内訳</h4>';
-statusHtml += '<table style="width: 100%; border-collapse: collapse;">';
+// どの制約を緩和して解を得たか（GAS側が入れていれば表示）
+const relaxedList = Array.isArray(draft.relaxed_constraints) ? draft.relaxed_constraints : [];
+const relaxationNote = (typeof draft.relaxation_message === 'string') ? draft.relaxation_message : '';
 
-// 方式
-if (draft && draft.type) {
-  statusHtml += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">方式</td>';
-  statusHtml += '<td style="padding: 8px; text-align: right;">' + draft.type + '</td></tr>';
+statusHtml += '<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+statusHtml += '<h4 style="margin: 0 0 8px 0;">📊 スコア: <span style="color: #1976D2; font-size: 1.15em;">' + finalScore + '点</span>（高いほど良い）</h4>';
+
+if (fulfilledReqs !== null && totalReqs !== null) {
+  statusHtml += '<p style="margin: 4px 0; font-size: 0.92em; color: #555;">希望: ' + fulfilledReqs + '/' + totalReqs + '件</p>';
 }
 
-// 試行回数・計算時間
-if (draft && typeof draft.attempts !== 'undefined') {
-  statusHtml += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">試行回数</td>';
-  statusHtml += '<td style="padding: 8px; text-align: right;">' + draft.attempts + '</td></tr>';
-}
-if (draft && typeof draft.elapsedTime !== 'undefined') {
-  statusHtml += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">計算時間</td>';
-  statusHtml += '<td style="padding: 8px; text-align: right;">' + (Math.round(draft.elapsedTime * 100) / 100) + ' 秒</td></tr>';
+if (execTime !== null) {
+  statusHtml += '<p style="margin: 4px 0; font-size: 0.92em; color: #555;">計算時間: ' + execTime + '秒</p>';
 }
 
-// 希望達成（件数のみ）
-if (typeof fulfilledReqs === 'number' && typeof totalReqs === 'number' && totalReqs > 0) {
-  const pct = Math.round((fulfilledReqs / totalReqs) * 100);
-  statusHtml += '<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">希望達成</td>';
-  statusHtml += '<td style="padding: 8px; text-align: right;">' + fulfilledReqs + '/' + totalReqs + '件（' + pct + '%）</td></tr>';
-}
-// 合計
-statusHtml += '<tr style="background: #e3f2fd;">';
-statusHtml += '<td style="padding: 10px; font-weight: bold;">合計スコア</td>';
-statusHtml += '<td style="padding: 10px; text-align: right; font-weight: bold; font-size: 1.3em; color: #1976D2;">' + finalScore + '点</td>';
-statusHtml += '</tr>';
-statusHtml += '</table>';
-
-// 参考（正規化スコア）
-const daysInMonth = (() => {
-  try {
-    const parts = String(monthKey || '').split('-');
-    const y = parseInt(parts[0], 10);
-    const m = parseInt(parts[1], 10);
-    if (!y || !m) return null;
-    return new Date(y, m, 0).getDate();
-  } catch (e) {
-    return null;
+if (relaxedList.length > 0) {
+  statusHtml += '<p style="margin: 6px 0 0 0; font-size: 0.92em; color: #b71c1c; font-weight: 600;">緩和した制約: ' + relaxedList.join('、') + '</p>';
+  if (relaxationNote) {
+    statusHtml += '<div style="margin-top: 6px; font-size: 12px; color: #7a1b1b; background: #fff; padding: 8px; border-radius: 6px;">' + escapeHtml(relaxationNote) + '</div>';
   }
-})();
-const staffCount = actualSchedule ? Object.keys(actualSchedule).length : 0;
-const perPersonPerDay = (daysInMonth && staffCount) ? (finalScore / (daysInMonth * staffCount)) : null;
-
-statusHtml += '<div style="margin-top: 12px; padding: 10px; background: #fff; border-radius: 4px; font-size: 12px; color: #555;">';
-statusHtml += '<div style="font-weight: bold; margin-bottom: 6px;">📈 スコアの見方</div>';
-statusHtml += '<div>スコアは相対指標で、高いほど良いです。同じ月・同じ制約設定で比較してください。</div>';
-if (perPersonPerDay !== null) {
-  statusHtml += '<div style="margin-top: 6px;">正規化（1人×1日あたり）: <strong>' + perPersonPerDay.toFixed(2) + '</strong> 点</div>';
+} else {
+  statusHtml += '<p style="margin: 6px 0 0 0; font-size: 0.92em; color: #2e7d32; font-weight: 600;">制約緩和なし</p>';
 }
-statusHtml += '</div>';
 
-// 算定要素（概要）
 statusHtml += '<details style="margin-top: 10px;">';
-statusHtml += '<summary style="cursor: pointer; font-size: 12px; color: #666;">スコア算定の概要を見る</summary>';
-statusHtml += '<div style="margin-top: 8px; padding: 10px; background: #fff; border-radius: 4px; font-size: 12px; color: #555;">';
-statusHtml += '<ul style="margin: 6px 0 0 18px; padding: 0;">';
-statusHtml += '<li>希望（年休、日勤、AM/PM、出張など）の達成</li>';
-statusHtml += '<li>セット（準・深の並び）の採用ボーナス</li>';
-statusHtml += '<li>休日のチーム偏り、夜勤リーダー不在などのペナルティ</li>';
-statusHtml += '<li>ハード希望（休・特・夏・出など）の違反は大きく減点</li>';
+statusHtml += '<summary style="cursor: pointer; font-size: 12px; color: #666;">スコアの意味（目的関数）</summary>';
+statusHtml += '<div style="margin-top: 8px; padding: 10px; background: #fff; border-radius: 6px; font-size: 12px; color: #555; line-height: 1.6;">';
+statusHtml += '<p style="margin: 0 0 8px 0;">スコアは OR-Tools（CP-SAT）が最大化する目的関数の値です。高いほど、希望・バランス・パターンなどがより良い割当になっています。</p>';
+statusHtml += '<ul style="margin: 0 0 0 18px; padding: 0;">';
+statusHtml += '<li>希望（年休・日勤希望など）の充足は加点</li>';
+statusHtml += '<li>セット（準準休深深休 など）やパターン一致は加点</li>';
+statusHtml += '<li>偏り（勤務日数・夜勤回数・チームバランス）や夜勤リーダー不足などは減点（スラック/違反の度合いに応じて）</li>';
+statusHtml += '<li>緩和して解を得た場合は、その分もスコアに反映（減点）</li>';
 statusHtml += '</ul>';
-statusHtml += '<div style="margin-top: 8px; color: #777;">※ 係数はバックエンドの最適化設定に依存し、月・人数でスケールが変わります。</div>';
+statusHtml += '<p style="margin: 8px 0 0 0; color: #777;">※点数は月の日数・休日数・スタッフ構成・希望数で変動します。月間比較は同条件で行うと安定します。</p>';
 statusHtml += '</div>';
 statusHtml += '</details>';
-
 statusHtml += '</div>';
+
 resultsArea.innerHTML = statusHtml;
 // ★★★ スコア内訳を追加 ★★★
-const scoreBreakdownHtml = formatScoreBreakdown(draft);
-resultsArea.innerHTML += scoreBreakdownHtml;
 
 if (!draft.schedule && !actualSchedule) {
 resultsArea.innerHTML += '<p style="color: red;">スケジュール詳細データがありません</p>';
