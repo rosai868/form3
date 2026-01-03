@@ -3223,6 +3223,9 @@ const statusPanel = document.getElementById('progress-status');
 const resultsArea = document.getElementById('schedule-results');
 
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz4E_SmydlpReF1vyieqI6ViCkHMfmVxFF4rEkhBD3JOqNdu0YGe9OI5Oxec5rO4Aeb5g/exec";
+// 旧コード互換: 一部の処理が GAS_WEB_APP_URL を参照しているためエイリアスを用意
+// （この画面では GAS_API_URL と同一）
+const GAS_WEB_APP_URL = GAS_API_URL;
 
 async function callGASWithJSONP(url) {
 // JSONPの代わりにfetchを使用（リダイレクト対応）
@@ -3630,7 +3633,7 @@ async function pollJobStatus(jobId, monthKey) {
     
     try {
       // ★★★ 方法1: Firestoreのschedulesを直接チェック ★★★
-      const scheduleDoc = await db.collection('schedules').doc(monthKey).get();
+      const scheduleDoc = await firestore.collection('schedules').doc(monthKey).get();
       
       if (scheduleDoc.exists) {
         const data = scheduleDoc.data();
