@@ -3214,16 +3214,13 @@ try {
           originalUISettings: originalUISettingsSnapshot
         });
       } catch (err) {
-        openRelaxModal({
-          mode: 'retry',
-          title: '再試行に失敗しました',
-          message: '通信エラーまたはバックエンドエラーです。必要に応じてさらに条件を緩和して再試行してください。',
-          errorText: err?.message || String(err),
-          baseSettings: relaxModalState.baseSettings,
-          currentSettings: nextSettings,
-          monthKey: relaxModalState.monthKey,
-          originalUISettings: relaxModalState.originalUISettings
-        });
+    // 何かあったら最後に「最初の状態」で再試行できるようにしておく
+    console.warn('openRelaxModal retry failed, fallback to baseSettingsSnapshot', err);
+    relaxModalState = {
+      baseSettings: (baseSettingsSnapshot && typeof baseSettingsSnapshot === 'object') ? baseSettingsSnapshot : (relaxModalState?.baseSettings || getConstraintSettings()),
+      monthKey: monthKeySnapshot || relaxModalState?.monthKey || getSelectedMonthKey(),
+      originalUISettings: originalUISettingsSnapshot || relaxModalState?.originalUISettings || null,
+    };
       } finally {
         setLoading(false);
       }
@@ -3401,7 +3398,7 @@ function wireStrictStartAutoToggle() {
   // strict-start をONにしたら、制約チェックを「全ON（希望優先は維持）」へ揃える
   strictCb.addEventListener('change', () => {
     if (!strictCb.checked) return;
-    const current = getConstraintValues(); // 既存のUI状態を読む
+    const current = getConstraintSettings(); // 既存のUI状態を読む
     const allOn = buildAllOnConstraintSettings(!!current.requestPriority);
     setConstraintSettings(allOn);
   });
