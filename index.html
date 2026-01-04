@@ -724,6 +724,24 @@ font-size: 10px;
 </div>
 </div>
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+
+// ===== 制約メタデータ（UI）: 先に定義してTDZエラーを避ける =====
+const CONSTRAINT_META = [
+  { key: 'nightCount',       param: 'c_nightCount',       checkboxId: 'constraint-night-count',       label: '深夜回数の均等化' },
+  { key: 'staffCount',       param: 'c_staffCount',       checkboxId: 'constraint-staff-count',       label: '勤務数の均等化' },
+  { key: 'teamBalance',      param: 'c_teamBalance',      checkboxId: 'constraint-team-balance',      label: 'チームバランス' },
+  { key: 'leaderRequired',   param: 'c_leaderRequired',   checkboxId: 'constraint-leader-required',   label: 'リーダー必須' },
+  { key: 'junKyuuShin',      param: 'c_junKyuuShin',      checkboxId: 'constraint-jun-kyuu-shin',     label: '休→準→深を禁止' },
+  { key: 'kyuuKyuuShin',     param: 'c_kyuuKyuuShin',     checkboxId: 'constraint-kyuu-kyuu-shin',    label: '休→休→準を禁止' },
+  { key: 'day4Consecutive',  param: 'c_day4Consecutive',  checkboxId: 'constraint-day-4-consecutive', label: '日勤4連続の制限' },
+  { key: 'nightInterval',    param: 'c_nightInterval',    checkboxId: 'constraint-night-interval',    label: '深夜の間隔' },
+  { key: 'junBeforeRest',    param: 'c_junBeforeRest',    checkboxId: 'constraint-jun-before-rest',   label: '準の前は休2連続を禁止' },
+  { key: 'junToShin',        param: 'c_junToShin',        checkboxId: 'constraint-jun-to-shin',       label: '準→深の連続禁止' },
+  { key: 'dayToShin',        param: 'c_dayToShin',        checkboxId: 'constraint-day-to-shin',       label: '日→深の連続禁止' },
+  { key: 'patternBonus',     param: 'c_patternBonus',     checkboxId: 'constraint-pattern-bonus',     label: 'セット/パターンボーナス' },
+  { key: 'requestPriority',  param: 'c_requestPriority',  checkboxId: 'constraint-request-priority',  label: '希望優先モード（目的関数）' }
+];
+
 // ===== UI / DOM helpers (safe even if elements are missing) =====
 function $(id) { return document.getElementById(id); }
 function showSection(id) {
@@ -879,6 +897,18 @@ let currentEditingSchedule = null;
 // ★★★ 勤務交換関連の関数（グローバルスコープ） ★★★
 // ============================================
 function generateScheduleTableHTML(schedule, monthKey, staff) {
+  // Defensive defaults: missing staff/monthKey should not crash rendering
+  staff = Array.isArray(staff) ? staff : [];
+  if (typeof monthKey !== "string" || monthKey.indexOf("-") === -1) {
+    monthKey = (typeof currentEditingMonthKey === "string" && currentEditingMonthKey.indexOf("-") !== -1)
+      ? currentEditingMonthKey
+      : ((typeof currentMonthKey === "string" && currentMonthKey.indexOf("-") !== -1) ? currentMonthKey : monthKey);
+  }
+  if (typeof monthKey !== "string" || monthKey.indexOf("-") === -1) {
+    console.warn("monthKey is invalid; fallback to 1970-01", monthKey);
+    monthKey = "1970-01";
+  }
+
 console.log("=== generateScheduleTableHTML 開始 ===");
 console.log("monthKey:", monthKey);
 
@@ -2071,7 +2101,8 @@ const confirmButtonHTML = isConfirmed
 '<i class="fas fa-check"></i> この案で確定する' +
 '</button>';
 
-scheduleDiv.innerHTML = generateScheduleTableHTML(currentEditingSchedule, monthKey, staffListForAdmin) + confirmButtonHTML;
+const safeStaffList = Array.isArray(staffListForAdmin) ? staffListForAdmin : [];
+  scheduleDiv.innerHTML = generateScheduleTableHTML(currentEditingSchedule, monthKey, safeStaffList) + confirmButtonHTML;
 
 draftDiv.appendChild(scheduleDiv);
 resultsArea.appendChild(draftDiv);
@@ -3337,21 +3368,7 @@ loadBtn.innerHTML = '<i class="fas fa-folder-open"></i> 保存済みを読み込
 // =============================
 
 // UI checkbox ↔ parameter mapping
-const CONSTRAINT_META = [
-  { key: 'nightCount',       param: 'c_nightCount',       checkboxId: 'constraint-night-count',       label: '深夜回数の均等化' },
-  { key: 'staffCount',       param: 'c_staffCount',       checkboxId: 'constraint-staff-count',       label: '勤務数の均等化' },
-  { key: 'teamBalance',      param: 'c_teamBalance',      checkboxId: 'constraint-team-balance',      label: 'チームバランス' },
-  { key: 'leaderRequired',   param: 'c_leaderRequired',   checkboxId: 'constraint-leader-required',   label: 'リーダー必須' },
-  { key: 'junKyuuShin',      param: 'c_junKyuuShin',      checkboxId: 'constraint-jun-kyuu-shin',     label: '休→準→深を禁止' },
-  { key: 'kyuuKyuuShin',     param: 'c_kyuuKyuuShin',     checkboxId: 'constraint-kyuu-kyuu-shin',    label: '休→休→準を禁止' },
-  { key: 'day4Consecutive',  param: 'c_day4Consecutive',  checkboxId: 'constraint-day-4-consecutive', label: '日勤4連続の制限' },
-  { key: 'nightInterval',    param: 'c_nightInterval',    checkboxId: 'constraint-night-interval',    label: '深夜の間隔' },
-  { key: 'junBeforeRest',    param: 'c_junBeforeRest',    checkboxId: 'constraint-jun-before-rest',   label: '準の前は休2連続を禁止' },
-  { key: 'junToShin',        param: 'c_junToShin',        checkboxId: 'constraint-jun-to-shin',       label: '準→深の連続禁止' },
-  { key: 'dayToShin',        param: 'c_dayToShin',        checkboxId: 'constraint-day-to-shin',       label: '日→深の連続禁止' },
-  { key: 'patternBonus',     param: 'c_patternBonus',     checkboxId: 'constraint-pattern-bonus',     label: 'セット/パターンボーナス' },
-  { key: 'requestPriority',  param: 'c_requestPriority',  checkboxId: 'constraint-request-priority',  label: '希望優先モード（目的関数）' }
-];
+
 
 function buildAllOnConstraintSettings(preserveRequestPriority = false) {
   const s = {};
@@ -4051,7 +4068,8 @@ draftDiv.appendChild(warningDiv);
 const scheduleDiv = document.createElement('div');
 scheduleDiv.style = "padding: 15px; overflow-x: auto;";
 // ★★★ 修正: actualScheduleを使用 ★★★
-scheduleDiv.innerHTML = generateScheduleTableHTML(actualSchedule, monthKey, staffListForAdmin) +
+const safeStaffList2 = Array.isArray(staffListForAdmin) ? staffListForAdmin : [];
+scheduleDiv.innerHTML = generateScheduleTableHTML(actualSchedule, monthKey, safeStaffList2) +
 '<button id="confirm-draft1" style="background: #1976D2; margin-top: 15px; width: auto; padding: 8px 15px; font-size: 14px;">' +
 '<i class="fas fa-check"></i> この案で確定する</button>';
 
