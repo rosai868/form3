@@ -726,7 +726,7 @@ font-size: 10px;
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 
 // ===== 制約メタデータ（UI）: 先に定義してTDZエラーを避ける =====
-const CONSTRAINT_META = [
+var CONSTRAINT_META = [
   { key: 'nightCount',       param: 'c_nightCount',       checkboxId: 'constraint-night-count',       label: '深夜回数の均等化' },
   { key: 'staffCount',       param: 'c_staffCount',       checkboxId: 'constraint-staff-count',       label: '勤務数の均等化' },
   { key: 'teamBalance',      param: 'c_teamBalance',      checkboxId: 'constraint-team-balance',      label: 'チームバランス' },
@@ -845,6 +845,26 @@ function getConstraintSettings() {
     };
 }
 
+function ensureConstraintSettings(input, fallback) {
+  // fallback は「全キーを持つ」前提（getConstraintSettings など）
+  const fb = (fallback && typeof fallback === 'object') ? fallback : {};
+  const out = { ...fb };
+
+  if (input && typeof input === 'object') {
+    for (const k of Object.keys(fb)) {
+      if (k in input) out[k] = input[k] ? 1 : 0;
+    }
+  }
+
+  // fb が空だった場合の最終フォールバック（理論上は起きないが安全策）
+  if (Object.keys(out).length === 0 && Array.isArray(CONSTRAINT_META)) {
+    for (const c of CONSTRAINT_META) {
+      out[c.key] = (input && (c.key in input)) ? (input[c.key] ? 1 : 0) : 1;
+    }
+  }
+  return out;
+}
+
 // ============================================
 // Firebaseの設定
 // ============================================
@@ -890,6 +910,10 @@ let selectedRequestType = null;
 let originalSelectedDates = {};
 let staffListForAdmin = [];
 let allRequestsForAdmin = {};
+// 手動緩和フロー用
+let lastStrictBaseSettings = null;
+let currentRelaxedSettings = null;
+
 let currentScheduleData = null;
 let currentEditingDraft = null;
 let currentEditingSchedule = null;
@@ -3459,14 +3483,124 @@ function extractFailureText(scheduleData, fallback = '全条件では解が見�
 let relaxModalState = null;
 
 function openRelaxModal({
-  mode,
-  title,
-  message,
-  errorText,
-  baseSettings,
-  currentSettings,
-  monthKey,
-  originalUISettings
+  mode = 'strict_failed',
+  title = '条件を満たす解が見つかりませんでした',
+  message = '',
+  baseSettings = null,
+  currentSettings = null,
+  onRetry = null,
+} = {}) {
+  try {
+    // フォールバック（null/undefined対策）
+    const uiSettings = getConstraintSettings(); // 画面の現在値（最も現実的なフォールバック）
+    const safeBase = ensureConstraintSettings(baseSettings, uiSettings);
+    const safeCurrent = ensureConstraintSettings(currentSettings, safeBase);
+
+    // モーダルUI
+    const modal = document.getElementById('relaxModal');
+    const titleEl = document.getElementById('relaxModalTitle');
+    const msgEl = document.getElementById('relaxModalMessage');
+    const listEl = document.getElementById('relaxConstraintList');
+    const retryBtn = document.getElementById('relaxRetryBtn');
+    const cancelBtn = document.getElementById('relaxCancelBtn');
+
+    if (!modal || !titleEl || !msgEl || !listEl || !retryBtn) {
+      console.warn('Relax modal elements are missing. Abort opening modal.');
+      return;
+    }
+
+    titleEl.textContent = title || '条件緩和';
+    msgEl.textContent = message || '';
+
+    // チェック一覧を再構築
+    listEl.innerHTML = '';
+    (CONSTRAINT_META || []).forEach(meta => {
+      const key = meta.key;
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.justifyContent = 'space-between';
+      row.style.padding = '8px 0';
+      row.style.borderBottom = '1px solid #eee';
+
+      const left = document.createElement('div');
+      left.style.display = 'flex';
+      left.style.flexDirection = 'column';
+
+      const label = document.createElement('label');
+      label.style.display = 'flex';
+      label.style.alignItems = 'center';
+      label.style.gap = '8px';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.dataset.constraintKey = key;
+      cb.checked = !!safeCurrent[key]; // ★ここが落ちないように safeCurrent を保証する
+
+      const span = document.createElement('span');
+      span.textContent = meta.label || key;
+
+      label.appendChild(cb);
+      label.appendChild(span);
+      left.appendChild(label);
+
+      if (meta.desc) {
+        const desc = document.createElement('div');
+        desc.textContent = meta.desc;
+        desc.style.fontSize = '12px';
+        desc.style.color = '#666';
+        desc.style.marginLeft = '26px';
+        left.appendChild(desc);
+      }
+
+      // 重要度表示
+      const right = document.createElement('div');
+      right.style.fontSize = '12px';
+      right.style.color = meta.severity === 'hard' ? '#d32f2f' : '#1976d2';
+      right.textContent = meta.severity === 'hard' ? '必須' : '推奨';
+
+      row.appendChild(left);
+      row.appendChild(right);
+      listEl.appendChild(row);
+    });
+
+    // リトライボタン動作
+    retryBtn.onclick = async () => {
+      try {
+        // モーダル内チェック → settings を作る
+        const nextSettings = { ...safeBase };
+        listEl.querySelectorAll('input[type="checkbox"][data-constraint-key]').forEach(cb => {
+          const k = cb.dataset.constraintKey;
+          nextSettings[k] = cb.checked ? 1 : 0;
+        });
+
+        modal.style.display = 'none';
+
+        if (typeof onRetry === 'function') {
+          await onRetry(nextSettings);
+        } else {
+          // デフォルト: 画面のチェックに反映してから再実行
+          setConstraintSettings(nextSettings);
+        }
+      } catch (e) {
+        console.error('Retry from relax modal failed:', e);
+        alert('再試行に失敗しました: ' + (e && e.message ? e.message : e));
+      }
+    };
+
+    if (cancelBtn) {
+      cancelBtn.onclick = () => {
+        modal.style.display = 'none';
+      };
+    }
+
+    // 表示
+    modal.style.display = 'block';
+  } catch (e) {
+    console.error('openRelaxModal failed:', e);
+    // ここで落ちるとユーザーが詰むので、最後は alert で逃がす
+    alert('条件緩和モーダルの表示に失敗しました: ' + (e && e.message ? e.message : e));
+  }
 }) {
   const modal = document.getElementById('relax-modal');
   const titleEl = document.getElementById('relax-modal-title');
@@ -3649,38 +3783,65 @@ async function strictFirstGenerate(monthKey) {
 
 
 async function relaxedStartGenerate(monthKey) {
-  // 現在のチェック状態（緩和した条件）をそのまま初期条件として使う
+  // 現在のチェック状態（ユーザーが外した条件も含む）をそのまま初期条件として使う
   const baseSettings = getConstraintSettings();
   lastStrictBaseSettings = { ...baseSettings };
   currentRelaxedSettings = { ...baseSettings };
 
+  setLoading(true);
   try {
     const scheduleData = await runCreateAndPoll(monthKey, baseSettings);
+    await displayScheduleResults(scheduleData, monthKey);
+  } catch (e) {
+    console.warn('relaxedStartGenerate failed:', e);
+    const msg = (e && e.message) ? e.message : String(e);
 
-    if (isScheduleFeasible(scheduleData)) {
-      displayScheduleResults(scheduleData, monthKey);
-      return;
-    }
+    // タイムアウトも「見つからない」扱いで緩和モーダルへ
+    openRelaxModal({
+      mode: 'strict_failed',
+      title: '条件を満たす解が見つかりませんでした',
+      message: msg + '\n\n緩和する条件を選んで再試行してください。',
+      baseSettings: lastStrictBaseSettings || baseSettings,
+      currentSettings: currentRelaxedSettings || baseSettings,
+      onRetry: async (nextSettings) => {
+        // 次回の緩和設定として保持しつつ、画面チェックも同期
+        currentRelaxedSettings = { ...nextSettings };
+        setConstraintSettings(nextSettings);
 
-    const failureText = extractFailureText(scheduleData);
-    openRelaxModal({
-      monthKey,
-      mode: 'retry',
-      baseSettings: baseSettings,
-      originalUISettings: { ...baseSettings },
-      message: failureText || '条件を満たす組み合わせが見つかりませんでした。緩和する条件を選んで再試行してください。',
-      errorDetails: (scheduleData && scheduleData.data && scheduleData.data.diagnosis) || scheduleData?.diagnosis || null
+        setLoading(true);
+        try {
+          const scheduleData2 = await runCreateAndPoll(monthKey, nextSettings);
+          await displayScheduleResults(scheduleData2, monthKey);
+        } catch (e2) {
+          console.warn('Retry failed:', e2);
+          const msg2 = (e2 && e2.message) ? e2.message : String(e2);
+          openRelaxModal({
+            mode: 'retry_failed',
+            title: '再試行でも解が見つかりませんでした',
+            message: msg2 + '\n\nさらに緩和する条件を選んで再試行してください。',
+            baseSettings: lastStrictBaseSettings || baseSettings,
+            currentSettings: nextSettings,
+            onRetry: async (nextSettings2) => {
+              // 連続リトライ
+              currentRelaxedSettings = { ...nextSettings2 };
+              setConstraintSettings(nextSettings2);
+
+              setLoading(true);
+              try {
+                const scheduleData3 = await runCreateAndPoll(monthKey, nextSettings2);
+                await displayScheduleResults(scheduleData3, monthKey);
+              } finally {
+                setLoading(false);
+              }
+            }
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
     });
-  } catch (err) {
-    console.error('relaxedStartGenerate failed:', err);
-    openRelaxModal({
-      monthKey,
-      mode: 'retry',
-      baseSettings: baseSettings,
-      originalUISettings: { ...baseSettings },
-      message: '最適化に失敗しました。緩和する条件を選んで再試行できます。',
-      errorDetails: String(err)
-    });
+  } finally {
+    setLoading(false);
   }
 }
 
