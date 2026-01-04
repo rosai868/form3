@@ -3657,23 +3657,34 @@ async function relaxedStartGenerate(monthKey) {
   lastStrictBaseSettings = { ...baseSettings };
   currentRelaxedSettings = { ...baseSettings };
 
-  const result = await attemptCreateSchedule(baseSettings, monthKey);
+  try {
+    const scheduleData = await runCreateAndPoll(monthKey, baseSettings);
 
-  if (result && result.ok) {
-    await pollUntilDoneAndRender(monthKey);
-    return;
+    if (isScheduleFeasible(scheduleData)) {
+      displayScheduleResults(scheduleData, monthKey);
+      return;
+    }
+
+    const failureText = extractFailureText(scheduleData);
+    openRelaxModal({
+      monthKey,
+      mode: 'retry',
+      baseSettings: baseSettings,
+      originalUISettings: { ...baseSettings },
+      message: failureText || '条件を満たす組み合わせが見つかりませんでした。緩和する条件を選んで再試行してください。',
+      errorDetails: (scheduleData && scheduleData.data && scheduleData.data.diagnosis) || scheduleData?.diagnosis || null
+    });
+  } catch (err) {
+    console.error('relaxedStartGenerate failed:', err);
+    openRelaxModal({
+      monthKey,
+      mode: 'retry',
+      baseSettings: baseSettings,
+      originalUISettings: { ...baseSettings },
+      message: '最適化に失敗しました。緩和する条件を選んで再試行できます。',
+      errorDetails: String(err)
+    });
   }
-
-  // infeasible / timeout / failed → 追加で緩和させる
-  openRelaxModal({
-    mode: 'create',
-    title: '解が見つかりませんでした（この条件のまま追加で緩和できます）',
-    message: result?.message || 'この条件では解が見つかりませんでした。緩和する条件を選んで再試行してください。',
-    baseSettings: baseSettings,
-    currentSettings: { ...baseSettings },
-    monthKey: monthKey,
-    originalUISettings: { ...baseSettings }
-  });
 }
 
 
