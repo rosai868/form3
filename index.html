@@ -3601,61 +3601,6 @@ function openRelaxModal({
     // ここで落ちるとユーザーが詰むので、最後は alert で逃がす
     alert('条件緩和モーダルの表示に失敗しました: ' + (e && e.message ? e.message : e));
   }
-}) {
-  const modal = document.getElementById('relax-modal');
-  const titleEl = document.getElementById('relax-modal-title');
-  const msgEl = document.getElementById('relax-modal-message');
-  const listEl = document.getElementById('relax-modal-constraints');
-  const errEl = document.getElementById('relax-modal-errors');
-  const applyBtn = document.getElementById('relax-modal-apply');
-
-  relaxModalState = { mode, baseSettings, currentSettings, monthKey, originalUISettings };
-
-  titleEl.textContent = title || '条件の緩和';
-  msgEl.textContent = message || '';
-  listEl.innerHTML = '';
-
-  for (const c of CONSTRAINT_META) {
-    const relaxed = !currentSettings[c.key]; // checked = relaxed (disabled)
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.gap = '10px';
-    row.style.padding = '6px 4px';
-
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.dataset.key = c.key;
-    cb.id = `relax-${c.key}`;
-    cb.checked = relaxed;
-
-    const label = document.createElement('label');
-    label.htmlFor = cb.id;
-    label.textContent = c.label;
-    label.style.cursor = 'pointer';
-
-    const badge = document.createElement('span');
-    badge.textContent = currentSettings[c.key] ? '有効' : '無効';
-    badge.style.marginLeft = 'auto';
-    badge.style.fontSize = '12px';
-    badge.style.color = '#6b7280';
-
-    row.appendChild(cb);
-    row.appendChild(label);
-    row.appendChild(badge);
-    listEl.appendChild(row);
-  }
-
-  if (errorText) {
-    errEl.style.display = 'block';
-    errEl.textContent = errorText;
-  } else {
-    errEl.style.display = 'none';
-    errEl.textContent = '';
-  }
-
-  applyBtn.textContent = (mode === 'edit') ? '適用' : '再試行';
-  modal.style.display = 'block';
 }
 
 function closeRelaxModal() {
@@ -4531,6 +4476,7 @@ window.exportScheduleToPDF = async function() {
     }
 }
 
+}
 } catch (error) {
 console.error('初期化処理エラー:', error);
 alert('初期化中にエラーが発生しました: ' + error.message);
