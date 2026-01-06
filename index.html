@@ -3279,9 +3279,18 @@ const text = await response.text();
 
 // JSONP形式のレスポンスからJSONを抽出
 // 形式: callbackName({...})
-const match = text.match(/^[^(]+\(([\s\S]*)\)$/);
+// JSONP形式: callbackName({...}); もしくは callbackName({...})
+// 末尾のセミコロン/空白も許容し、パースに失敗した場合は括弧位置からも抽出する
+let match = text.match(/^[^(]+\(([\s\S]*)\)\s*;?\s*$/);
 if (match) {
-return JSON.parse(match[1]);
+  return JSON.parse(match[1]);
+}
+// フォールバック: 最初の'('と最後の')'で切り出す
+const start = text.indexOf('(');
+const end = text.lastIndexOf(')');
+if (start !== -1 && end !== -1 && end > start) {
+  const jsonStr = text.slice(start + 1, end);
+  return JSON.parse(jsonStr);
 }
 
 // JSON形式の場合
@@ -3857,13 +3866,21 @@ async function pollJobStatus(jobId, monthKey, baselineUpdatedAtMs = 0) {
 
       if (statusResult && statusResult.success && statusResult.status === 'completed') {
         console.log('✅ JobQueue完了を検出（GAS）');
-        updateSimpleProgressUI(100, '完了しました！');
+
+        // ここで100%にしてしまうと、結果取得に失敗した場合に「94%で止まる」ように見えるため、
+        // まずは99%で「結果取得中」を表示し、取得成功後に100%へ進める。
+        updateSimpleProgressUI(99, '結果を取得中...');
 
         const scheduleUrl = GAS_API_URL + '?action=getSchedule&month=' + encodeURIComponent(monthKey) + '&v=' + Date.now();
         const scheduleResult = await callGASWithJSONP(scheduleUrl);
-        if (scheduleResult && scheduleResult.success) return scheduleResult.data;
 
-        throw new Error('完了済みだがスケジュール取得に失敗しました');
+        if (scheduleResult && scheduleResult.success && scheduleResult.data) {
+          updateSimpleProgressUI(100, '完了しました！');
+          return scheduleResult.data;
+        }
+
+        // GASが「完了」を返していても、保存反映まで僅かに遅れる場合があるため、例外を投げてループ継続する
+        throw new Error('完了済みだがスケジュール取得に失敗（保存反映待ちの可能性）');
       }
 
       if (statusResult && statusResult.status === 'failed') {
