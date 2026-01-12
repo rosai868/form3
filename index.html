@@ -3493,123 +3493,87 @@ let relaxModalState = null;
 
 function openRelaxModal({
   mode = 'strict_failed',
-  title = '条件を満たす解が見つかりませんでした',
+  title = '条件緩和の提案',
   message = '',
+  errorText = '',
   baseSettings = null,
   currentSettings = null,
-  onRetry = null,
+  monthKey = null,
+  originalUISettings = null,
+  onRetry = null
 } = {}) {
-  try {
-    // フォールバック（null/undefined対策）
-    const uiSettings = getConstraintSettings(); // 画面の現在値（最も現実的なフォールバック）
-    const safeBase = ensureConstraintSettings(baseSettings, uiSettings);
-    const safeCurrent = ensureConstraintSettings(currentSettings, safeBase);
+  // ===== DOM =====
+  const modal = document.getElementById('relax-modal');
+  const overlay = document.getElementById('relax-modal-overlay');
+  const titleEl = document.getElementById('relax-modal-title');
+  const messageEl = document.getElementById('relax-modal-message');
+  const constraintsEl = document.getElementById('relax-modal-constraints');
+  const errorsEl = document.getElementById('relax-modal-errors');
 
-    // モーダルUI
-    const modal = document.getElementById('relaxModal');
-    const titleEl = document.getElementById('relaxModalTitle');
-    const msgEl = document.getElementById('relaxModalMessage');
-    const listEl = document.getElementById('relaxConstraintList');
-    const retryBtn = document.getElementById('relaxRetryBtn');
-    const cancelBtn = document.getElementById('relaxCancelBtn');
-
-    if (!modal || !titleEl || !msgEl || !listEl || !retryBtn) {
-      console.warn('Relax modal elements are missing. Abort opening modal.');
-      return;
-    }
-
-    titleEl.textContent = title || '条件緩和';
-    msgEl.textContent = message || '';
-
-    // チェック一覧を再構築
-    listEl.innerHTML = '';
-    (CONSTRAINT_META || []).forEach(meta => {
-      const key = meta.key;
-      const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.alignItems = 'center';
-      row.style.justifyContent = 'space-between';
-      row.style.padding = '8px 0';
-      row.style.borderBottom = '1px solid #eee';
-
-      const left = document.createElement('div');
-      left.style.display = 'flex';
-      left.style.flexDirection = 'column';
-
-      const label = document.createElement('label');
-      label.style.display = 'flex';
-      label.style.alignItems = 'center';
-      label.style.gap = '8px';
-
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.dataset.constraintKey = key;
-      cb.checked = !!safeCurrent[key]; // ★ここが落ちないように safeCurrent を保証する
-
-      const span = document.createElement('span');
-      span.textContent = meta.label || key;
-
-      label.appendChild(cb);
-      label.appendChild(span);
-      left.appendChild(label);
-
-      if (meta.desc) {
-        const desc = document.createElement('div');
-        desc.textContent = meta.desc;
-        desc.style.fontSize = '12px';
-        desc.style.color = '#666';
-        desc.style.marginLeft = '26px';
-        left.appendChild(desc);
-      }
-
-      // 重要度表示
-      const right = document.createElement('div');
-      right.style.fontSize = '12px';
-      right.style.color = meta.severity === 'hard' ? '#d32f2f' : '#1976d2';
-      right.textContent = meta.severity === 'hard' ? '必須' : '推奨';
-
-      row.appendChild(left);
-      row.appendChild(right);
-      listEl.appendChild(row);
-    });
-
-    // リトライボタン動作
-    retryBtn.onclick = async () => {
-      try {
-        // モーダル内チェック → settings を作る
-        const nextSettings = { ...safeBase };
-        listEl.querySelectorAll('input[type="checkbox"][data-constraint-key]').forEach(cb => {
-          const k = cb.dataset.constraintKey;
-          nextSettings[k] = cb.checked ? 1 : 0;
-        });
-
-        modal.style.display = 'none';
-
-        if (typeof onRetry === 'function') {
-          await onRetry(nextSettings);
-        } else {
-          // デフォルト: 画面のチェックに反映してから再実行
-          setConstraintSettings(nextSettings);
-        }
-      } catch (e) {
-        console.error('Retry from relax modal failed:', e);
-        alert('再試行に失敗しました: ' + (e && e.message ? e.message : e));
-      }
-    };
-
-    if (cancelBtn) {
-      cancelBtn.onclick = () => {
-        modal.style.display = 'none';
-      };
-    }
-
-    // 表示
-    modal.style.display = 'block';
-  } catch (e) {
-    console.error('openRelaxModal failed:', e);
-    // ここで落ちるとユーザーが詰むので、最後は alert で逃がす
-    alert('条件緩和モーダルの表示に失敗しました: ' + (e && e.message ? e.message : e));
+  if (!modal || !overlay || !titleEl || !messageEl || !constraintsEl || !errorsEl) {
+    console.error('Relax modal elements are missing. Abort opening modal.');
+    // ここで例外を投げるとUIが固まりやすいので alert でフォールバック
+    alert('条件緩和モーダルの部品が見つかりません（HTML/JSの不整合）。');
+    return;
   }
+
+  // ===== normalize settings =====
+  const safeGet = () => { try { return getConstraintSettings(); } catch (_) { return {}; } };
+  const base = ensureConstraintSettings(baseSettings ?? safeGet());
+  const cur = ensureConstraintSettings(currentSettings ?? base);
+
+  // ===== set state (used by button handlers) =====
+  relaxModalState = {
+    mode,
+    monthKey: monthKey || relaxModalState.monthKey || null,
+    title,
+    message,
+    errorText,
+    baseSettings: base,
+    currentSettings: cur,
+    originalUISettings: originalUISettings || relaxModalState.originalUISettings || safeGet(),
+    onRetry: (typeof onRetry === 'function') ? onRetry : null
+  };
+
+  // ===== render =====
+  titleEl.textContent = title;
+  messageEl.textContent = message || '';
+
+  if (errorText) {
+    errorsEl.style.display = 'block';
+    errorsEl.textContent = errorText;
+  } else {
+    errorsEl.style.display = 'none';
+    errorsEl.textContent = '';
+  }
+
+  const keys = Object.keys(CONSTRAINT_META || {});
+  if (!keys.length) {
+    constraintsEl.innerHTML = '<div style="color:#c00;">CONSTRAINT_META が見つかりません。</div>';
+  } else {
+    constraintsEl.innerHTML = keys.map((k) => {
+      const meta = CONSTRAINT_META[k] || { label: k, desc: '' };
+      const isEnabled = (cur[k] === 1);
+      // チェック = 緩和(OFF)
+      const checked = isEnabled ? '' : 'checked';
+      const badge = isEnabled
+        ? '<span style="margin-left:8px; font-size:11px; color:#2e7d32;">（現在ON）</span>'
+        : '<span style="margin-left:8px; font-size:11px; color:#666;">（現在OFF）</span>';
+      return `
+        <label style="display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid #eee;">
+          <input type="checkbox" class="relax-modal-checkbox" data-key="${k}" ${checked} style="margin-top:3px;" />
+          <div>
+            <div style="font-weight:600;">${meta.label}${badge}</div>
+            <div style="font-size:12px; color:#666; margin-top:2px;">${meta.desc || ''}</div>
+          </div>
+        </label>
+      `;
+    }).join('');
+  }
+
+  // show
+  overlay.style.display = 'block';
+  modal.style.display = 'flex';
 }
 
 function closeRelaxModal() {
