@@ -536,6 +536,45 @@ font-size: 10px;
 <div class="container hidden" id="adminSection">
 <h1>管理者画面</h1>
 <button onclick="showMainSection()" style="width: auto; padding: 10px 20px; margin-bottom: 20px; background: #6c757d;">自分のシフト登録に戻る</button>
+
+<!-- 管理者タブ -->
+<div style="display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #E0E0E0;">
+<button id="admin-tab-schedule" class="admin-tab active" onclick="showAdminTab('schedule')" style="padding: 12px 24px; border: none; background: #00897B; color: white; cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold;">
+<i class="fas fa-calendar-alt"></i> 希望一覧・シフト作成
+</button>
+<button id="admin-tab-staff" class="admin-tab" onclick="showAdminTab('staff')" style="padding: 12px 24px; border: none; background: #E0E0E0; color: #333; cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold;">
+<i class="fas fa-users"></i> スタッフ管理
+</button>
+</div>
+
+<!-- スタッフ管理セクション -->
+<div id="admin-content-staff" style="display: none;">
+<div style="padding: 20px; background: #FFFBF7; border: 1px solid #F0EAE4; border-radius: 8px; margin-bottom: 20px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+<h3 style="margin: 0; color: #5D4037;"><i class="fas fa-users"></i> スタッフ一覧</h3>
+<button onclick="openStaffModal()" style="background: #00897B; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+<i class="fas fa-plus"></i> スタッフを追加
+</button>
+</div>
+<div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+<select id="staff-filter-team" onchange="renderStaffList()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;">
+<option value="">全チーム</option>
+<option value="A">チームA</option>
+<option value="B">チームB</option>
+</select>
+<label style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
+<input type="checkbox" id="staff-show-inactive" onchange="renderStaffList()">
+無効なスタッフも表示
+</label>
+</div>
+<div id="staff-list-container" style="background: white; border-radius: 8px; overflow: hidden;">
+<!-- 動的に生成 -->
+</div>
+</div>
+</div>
+
+<!-- 希望一覧・シフト作成セクション -->
+<div id="admin-content-schedule">
 <div style="display: flex; gap: 10px; margin-bottom: 20px;">
 <button onclick="showPreviousMonth()" style="width: auto; padding: 10px 20px;">前月</button>
 <button onclick="showCurrentMonth()" style="width: auto; padding: 10px 20px;">今月</button>
@@ -600,8 +639,8 @@ font-size: 10px;
 <!-- シフトパターン制約 -->
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
-<input checked="" id="constraint-jun-kyuu-shin" type="checkbox"/>
-<span>準休深・深休準の禁止</span>
+<input checked="" id="constraint-shin-kyuu-jun" type="checkbox"/>
+<span>深休準の禁止</span>
 </label>
 <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #E0E0E0; border-radius: 4px; cursor: pointer;">
 <input checked="" id="constraint-kyuu-kyuu-shin" type="checkbox"/>
@@ -699,6 +738,85 @@ font-size: 10px;
 </div>
 </div>
 </div>
+<!-- スタッフ編集モーダル -->
+<div id="staff-modal" style="display:none; position:fixed; z-index:1001; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+<div style="background-color:#fff; margin:3% auto; padding:0; border-radius:12px; width:90%; max-width:550px; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+<div style="background: #00897B; color: white; padding: 16px 20px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+<h3 id="staff-modal-title" style="margin: 0; font-size: 18px;"><i class="fas fa-user-plus"></i> スタッフを追加</h3>
+<button onclick="closeStaffModal()" style="background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px;">&times;</button>
+</div>
+<div style="padding: 20px;">
+<input type="hidden" id="edit-staff-uid">
+<div style="display: grid; gap: 15px;">
+<!-- 名前 -->
+<div>
+<label style="display: block; font-weight: bold; margin-bottom: 6px; color: #333;">名前 <span style="color: #E53935;">*</span></label>
+<input type="text" id="edit-staff-name" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" placeholder="例: 山田太郎">
+</div>
+<!-- チーム -->
+<div>
+<label style="display: block; font-weight: bold; margin-bottom: 6px; color: #333;">チーム <span style="color: #E53935;">*</span></label>
+<select id="edit-staff-team" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+<option value="A">チームA</option>
+<option value="B">チームB</option>
+</select>
+</div>
+<!-- 初期パスワード（新規追加時のみ） -->
+<div id="staff-password-row">
+<label style="display: block; font-weight: bold; margin-bottom: 6px; color: #333;">初期パスワード <span style="color: #E53935;">*</span> <small style="color: #777;">（新規追加時のみ）</small></label>
+<input type="text" id="edit-staff-password" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" placeholder="6文字以上">
+</div>
+<!-- 属性チェックボックス -->
+<div style="background: #F5F5F5; padding: 15px; border-radius: 8px;">
+<label style="display: block; font-weight: bold; margin-bottom: 10px; color: #333;">属性設定</label>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+<input type="checkbox" id="edit-staff-leader"> リーダー
+</label>
+<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+<input type="checkbox" id="edit-staff-admin"> 管理者権限
+</label>
+<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+<input type="checkbox" id="edit-staff-day-only"> 日勤のみ
+</label>
+<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+<input type="checkbox" id="edit-staff-weekday-day-only"> 平日日勤のみ
+</label>
+<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+<input type="checkbox" id="edit-staff-jun-only"> 準夜固定
+</label>
+<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+<input type="checkbox" id="edit-staff-rookie-year1"> 1年目
+</label>
+<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+<input type="checkbox" id="edit-staff-rookie-year2"> 2年目
+</label>
+<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+<input type="checkbox" id="edit-staff-active" checked> 有効（シフト対象）
+</label>
+</div>
+</div>
+<!-- 深夜週上限 -->
+<div>
+<label style="display: block; font-weight: bold; margin-bottom: 6px; color: #333;">深夜の週上限回数 <small style="color: #777;">（空欄＝制限なし）</small></label>
+<input type="number" id="edit-staff-max-shin-per-week" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" placeholder="例: 2" min="0" max="7">
+</div>
+</div>
+</div>
+<div style="padding: 15px 20px; background: #F9F9F9; border-radius: 0 0 12px 12px; display: flex; justify-content: space-between; align-items: center;">
+<button id="delete-staff-btn" onclick="deleteStaff()" style="background: #E53935; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; display: none;">
+<i class="fas fa-trash"></i> 削除
+</button>
+<div style="display: flex; gap: 10px; margin-left: auto;">
+<button onclick="closeStaffModal()" style="background: #9E9E9E; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">キャンセル</button>
+<button onclick="saveStaff()" style="background: #00897B; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+<i class="fas fa-save"></i> 保存
+</button>
+</div>
+</div>
+</div>
+</div>
+
 <!-- Constraint Relaxation Modal -->
 <div id="relax-modal" style="display:none; position:fixed; z-index:1001; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
 <div style="background-color:#fff; margin:5% auto; padding:20px; border-radius:8px; width:90%; max-width:720px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
@@ -731,7 +849,7 @@ var CONSTRAINT_META = [
   { key: 'staffCount',       param: 'c_staffCount',       checkboxId: 'constraint-staff-count',       label: '勤務数の均等化' },
   { key: 'teamBalance',      param: 'c_teamBalance',      checkboxId: 'constraint-team-balance',      label: 'チームバランス' },
   { key: 'leaderRequired',   param: 'c_leaderRequired',   checkboxId: 'constraint-leader-required',   label: 'リーダー必須' },
-  { key: 'junKyuuShin',      param: 'c_junKyuuShin',      checkboxId: 'constraint-jun-kyuu-shin',     label: '休→準→深を禁止' },
+  { key: 'shinKyuuJun',      param: 'c_shinKyuuJun',      checkboxId: 'constraint-shin-kyuu-jun',     label: '深休準を禁止' },
   { key: 'kyuuKyuuShin',     param: 'c_kyuuKyuuShin',     checkboxId: 'constraint-kyuu-kyuu-shin',    label: '休→休→準を禁止' },
   { key: 'day4Consecutive',  param: 'c_day4Consecutive',  checkboxId: 'constraint-day-4-consecutive', label: '日勤4連続の制限' },
   { key: 'nightInterval',    param: 'c_nightInterval',    checkboxId: 'constraint-night-interval',    label: '深夜の間隔' },
@@ -792,7 +910,7 @@ function resetConstraints() {
     document.getElementById('constraint-team-balance').checked = true;
     document.getElementById('constraint-leader-required').checked = true;
     // シフトパターン制約
-    document.getElementById('constraint-jun-kyuu-shin').checked = true;
+    document.getElementById('constraint-shin-kyuu-jun').checked = true;
     document.getElementById('constraint-kyuu-kyuu-shin').checked = true;
     document.getElementById('constraint-day-4-consecutive').checked = true;
     document.getElementById('constraint-night-interval').checked = true;
@@ -811,7 +929,7 @@ function relaxConstraints() {
     document.getElementById('constraint-team-balance').checked = false;  // オフ
     document.getElementById('constraint-leader-required').checked = false;  // オフ
     // シフトパターン制約
-    document.getElementById('constraint-jun-kyuu-shin').checked = true;
+    document.getElementById('constraint-shin-kyuu-jun').checked = true;
     document.getElementById('constraint-kyuu-kyuu-shin').checked = true;
     document.getElementById('constraint-day-4-consecutive').checked = true;
     document.getElementById('constraint-night-interval').checked = false;
@@ -832,7 +950,7 @@ function getConstraintSettings() {
         teamBalance: document.getElementById('constraint-team-balance')?.checked ?? true,
         leaderRequired: document.getElementById('constraint-leader-required')?.checked ?? true,
         // シフトパターン制約
-        junKyuuShin: document.getElementById('constraint-jun-kyuu-shin')?.checked ?? true,
+        shinKyuuJun: document.getElementById('constraint-shin-kyuu-jun')?.checked ?? true,
         kyuuKyuuShin: document.getElementById('constraint-kyuu-kyuu-shin')?.checked ?? true,
         day4Consecutive: document.getElementById('constraint-day-4-consecutive')?.checked ?? true,
         nightInterval: document.getElementById('constraint-night-interval')?.checked ?? true,
@@ -2823,6 +2941,266 @@ alert('翌月の希望入力期間はまだ開始されていません');
 // 管理者機能
 // ============================================
 
+// タブ切り替え
+function showAdminTab(tab) {
+  const tabs = ['schedule', 'staff'];
+  tabs.forEach(t => {
+    const tabBtn = document.getElementById(`admin-tab-${t}`);
+    const content = document.getElementById(`admin-content-${t}`);
+    if (t === tab) {
+      tabBtn.style.background = '#00897B';
+      tabBtn.style.color = 'white';
+      content.style.display = 'block';
+    } else {
+      tabBtn.style.background = '#E0E0E0';
+      tabBtn.style.color = '#333';
+      content.style.display = 'none';
+    }
+  });
+  // スタッフタブが選択されたら一覧を読み込む
+  if (tab === 'staff') {
+    loadStaffList();
+  }
+}
+
+// スタッフ一覧のキャッシュ
+let staffListCache = [];
+
+// スタッフ一覧を読み込み
+async function loadStaffList() {
+  try {
+    const snapshot = await firestore.collection('staff').get({ source: 'server' });
+    staffListCache = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+    staffListCache.sort((a, b) => (a.originalId || 999) - (b.originalId || 999));
+    renderStaffList();
+  } catch (error) {
+    console.error('スタッフ一覧の読み込みエラー:', error);
+    document.getElementById('staff-list-container').innerHTML =
+      `<div style="padding: 20px; color: red;">読み込みエラー: ${error.message}</div>`;
+  }
+}
+
+// スタッフ一覧を描画
+function renderStaffList() {
+  const filterTeam = document.getElementById('staff-filter-team').value;
+  const showInactive = document.getElementById('staff-show-inactive').checked;
+
+  let filtered = staffListCache.filter(s => {
+    if (filterTeam && s.team !== filterTeam) return false;
+    if (!showInactive && s.active === false) return false;
+    return true;
+  });
+
+  const container = document.getElementById('staff-list-container');
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="padding: 20px; color: #777; text-align: center;">スタッフがいません</div>';
+    return;
+  }
+
+  let html = `
+    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+      <thead style="background: #F5F5F5;">
+        <tr>
+          <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">ID</th>
+          <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">名前</th>
+          <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">チーム</th>
+          <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">属性</th>
+          <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  for (const staff of filtered) {
+    // 属性バッジを作成
+    let badges = [];
+    if (staff.leader) badges.push('<span style="background: #FF9800; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">リーダー</span>');
+    if (staff.isAdmin) badges.push('<span style="background: #E53935; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">管理者</span>');
+    if (staff.dayOnly) badges.push('<span style="background: #2196F3; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">日勤のみ</span>');
+    if (staff.weekdayDayOnly) badges.push('<span style="background: #00BCD4; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">平日日勤</span>');
+    if (staff.junOnly) badges.push('<span style="background: #9C27B0; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">準夜固定</span>');
+    if (staff.rookieYear1) badges.push('<span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">1年目</span>');
+    if (staff.rookieYear2) badges.push('<span style="background: #8BC34A; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">2年目</span>');
+    if (staff.maxShinPerWeek) badges.push(`<span style="background: #607D8B; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">深夜週${staff.maxShinPerWeek}まで</span>`);
+    if (staff.active === false) badges.push('<span style="background: #9E9E9E; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">無効</span>');
+
+    const rowStyle = staff.active === false ? 'background: #F5F5F5; opacity: 0.7;' : '';
+
+    html += `
+      <tr style="${rowStyle}">
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">${staff.originalId || '-'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">${staff.name || '(名前なし)'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">${staff.team || '-'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">${badges.join(' ') || '-'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">
+          <button onclick="editStaff('${staff.uid}')" style="background: #1976D2; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+            <i class="fas fa-edit"></i> 編集
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+// スタッフモーダルを開く（新規追加）
+function openStaffModal() {
+  document.getElementById('staff-modal-title').innerHTML = '<i class="fas fa-user-plus"></i> スタッフを追加';
+  document.getElementById('edit-staff-uid').value = '';
+  document.getElementById('edit-staff-name').value = '';
+  document.getElementById('edit-staff-team').value = 'A';
+  document.getElementById('edit-staff-password').value = '';
+  document.getElementById('staff-password-row').style.display = 'block';
+  document.getElementById('edit-staff-leader').checked = false;
+  document.getElementById('edit-staff-admin').checked = false;
+  document.getElementById('edit-staff-day-only').checked = false;
+  document.getElementById('edit-staff-weekday-day-only').checked = false;
+  document.getElementById('edit-staff-jun-only').checked = false;
+  document.getElementById('edit-staff-rookie-year1').checked = false;
+  document.getElementById('edit-staff-rookie-year2').checked = false;
+  document.getElementById('edit-staff-active').checked = true;
+  document.getElementById('edit-staff-max-shin-per-week').value = '';
+  document.getElementById('delete-staff-btn').style.display = 'none';
+  document.getElementById('staff-modal').style.display = 'block';
+}
+
+// スタッフ編集モーダルを開く
+function editStaff(uid) {
+  const staff = staffListCache.find(s => s.uid === uid);
+  if (!staff) {
+    alert('スタッフが見つかりません');
+    return;
+  }
+
+  document.getElementById('staff-modal-title').innerHTML = '<i class="fas fa-user-edit"></i> スタッフを編集';
+  document.getElementById('edit-staff-uid').value = uid;
+  document.getElementById('edit-staff-name').value = staff.name || '';
+  document.getElementById('edit-staff-team').value = staff.team || 'A';
+  document.getElementById('staff-password-row').style.display = 'none'; // 編集時はパスワード変更不可
+  document.getElementById('edit-staff-leader').checked = !!staff.leader;
+  document.getElementById('edit-staff-admin').checked = !!staff.isAdmin;
+  document.getElementById('edit-staff-day-only').checked = !!staff.dayOnly;
+  document.getElementById('edit-staff-weekday-day-only').checked = !!staff.weekdayDayOnly;
+  document.getElementById('edit-staff-jun-only').checked = !!staff.junOnly;
+  document.getElementById('edit-staff-rookie-year1').checked = !!staff.rookieYear1;
+  document.getElementById('edit-staff-rookie-year2').checked = !!staff.rookieYear2;
+  document.getElementById('edit-staff-active').checked = staff.active !== false;
+  document.getElementById('edit-staff-max-shin-per-week').value = staff.maxShinPerWeek || '';
+  document.getElementById('delete-staff-btn').style.display = 'block';
+  document.getElementById('staff-modal').style.display = 'block';
+}
+
+// スタッフモーダルを閉じる
+function closeStaffModal() {
+  document.getElementById('staff-modal').style.display = 'none';
+}
+
+// スタッフを保存
+async function saveStaff() {
+  const uid = document.getElementById('edit-staff-uid').value;
+  const name = document.getElementById('edit-staff-name').value.trim();
+  const team = document.getElementById('edit-staff-team').value;
+  const password = document.getElementById('edit-staff-password').value.trim();
+
+  if (!name) {
+    alert('名前を入力してください');
+    return;
+  }
+
+  // 新規追加の場合はパスワードが必要
+  if (!uid && (!password || password.length < 6)) {
+    alert('初期パスワードを6文字以上で入力してください');
+    return;
+  }
+
+  const staffData = {
+    name: name,
+    team: team,
+    leader: document.getElementById('edit-staff-leader').checked,
+    isAdmin: document.getElementById('edit-staff-admin').checked,
+    dayOnly: document.getElementById('edit-staff-day-only').checked,
+    weekdayDayOnly: document.getElementById('edit-staff-weekday-day-only').checked,
+    junOnly: document.getElementById('edit-staff-jun-only').checked,
+    rookieYear1: document.getElementById('edit-staff-rookie-year1').checked,
+    rookieYear2: document.getElementById('edit-staff-rookie-year2').checked,
+    active: document.getElementById('edit-staff-active').checked,
+  };
+
+  const maxShin = document.getElementById('edit-staff-max-shin-per-week').value;
+  if (maxShin) {
+    staffData.maxShinPerWeek = parseInt(maxShin);
+  } else {
+    staffData.maxShinPerWeek = null;
+  }
+
+  try {
+    if (uid) {
+      // 更新
+      await firestore.collection('staff').doc(uid).update(staffData);
+      alert('スタッフ情報を更新しました');
+    } else {
+      // 新規追加：まずFirebase Authにユーザーを作成する必要がある
+      // Cloud Functionsが必要なため、Firestoreに保存して後でAuthを同期するか、
+      // 簡易的にoriginalIdを計算して保存
+      const maxId = staffListCache.reduce((max, s) => Math.max(max, s.originalId || 0), 0);
+      const newId = maxId + 1;
+      const newEmail = `${newId}@7w.com`;
+
+      // Firebase Authにユーザーを作成（クライアント側では直接できないので警告）
+      alert(`新規スタッフを追加するには、Firebase Consoleで以下の操作が必要です:\n\n` +
+            `1. Authentication → ユーザーを追加\n` +
+            `2. メール: ${newEmail}\n` +
+            `3. パスワード: ${password}\n\n` +
+            `作成後、このスタッフをFirestoreに登録します。\n` +
+            `続行しますか？`);
+
+      staffData.originalId = newId;
+      staffData.createdAt = new Date().toISOString();
+
+      // 仮のUIDで保存（後で正しいUIDに更新が必要）
+      const docRef = await firestore.collection('staff').add(staffData);
+      alert(`Firestoreにスタッフを追加しました。\n\nFirebase Consoleで認証ユーザーを作成し、\nそのUIDでこのドキュメント（${docRef.id}）を更新してください。\n\nメール: ${newEmail}\nパスワード: ${password}`);
+    }
+
+    closeStaffModal();
+    await loadStaffList();
+  } catch (error) {
+    console.error('スタッフ保存エラー:', error);
+    alert('保存エラー: ' + error.message);
+  }
+}
+
+// スタッフを削除
+async function deleteStaff() {
+  const uid = document.getElementById('edit-staff-uid').value;
+  if (!uid) return;
+
+  const staff = staffListCache.find(s => s.uid === uid);
+  if (!staff) return;
+
+  if (!confirm(`「${staff.name}」を削除しますか？\n\nこの操作は取り消せません。\n※シフト履歴も削除される可能性があります。`)) {
+    return;
+  }
+
+  // 2回確認
+  if (!confirm(`本当に削除しますか？`)) {
+    return;
+  }
+
+  try {
+    await firestore.collection('staff').doc(uid).delete();
+    alert('スタッフを削除しました');
+    closeStaffModal();
+    await loadStaffList();
+  } catch (error) {
+    console.error('スタッフ削除エラー:', error);
+    alert('削除エラー: ' + error.message);
+  }
+}
+
 async function renderAdminTable() {
 const year = currentMonth.getFullYear();
 const month = currentMonth.getMonth() + 1;
@@ -3196,28 +3574,58 @@ if (relaxConstraintsBtn) {
 
   if (relaxApplyBtn) {
     relaxApplyBtn.addEventListener('click', async () => {
-      if (!relaxModalState) return;
+      console.log('再試行ボタンがクリックされました');
+      console.log('relaxModalState:', relaxModalState);
+      if (!relaxModalState) {
+        console.error('relaxModalStateがnullです - 処理を中断');
+        alert('エラー: モーダルの状態が初期化されていません。ページをリロードして再試行してください。');
+        return;
+      }
 
       // Snapshot state so async errors do not crash if the modal is closed mid-run
-      const stateSnapshot = JSON.parse(JSON.stringify(relaxModalState));
+      let stateSnapshot;
+      try {
+        stateSnapshot = JSON.parse(JSON.stringify(relaxModalState));
+        console.log('stateSnapshot作成成功:', stateSnapshot);
+      } catch (parseErr) {
+        console.error('JSON.parse/stringifyでエラー:', parseErr);
+        // フォールバック: 直接参照
+        stateSnapshot = {
+          mode: relaxModalState.mode,
+          monthKey: relaxModalState.monthKey,
+          baseSettings: relaxModalState.baseSettings,
+          currentSettings: relaxModalState.currentSettings,
+          originalUISettings: relaxModalState.originalUISettings
+        };
+        console.log('フォールバックstateSnapshot:', stateSnapshot);
+      }
       const monthKeySnapshot = stateSnapshot.monthKey;
       const baseSettingsSnapshot = stateSnapshot.baseSettings || getConstraintSettings();
       const originalUISettingsSnapshot = stateSnapshot.originalUISettings || getConstraintSettings();
 
+      console.log('monthKeySnapshot:', monthKeySnapshot);
+      console.log('baseSettingsSnapshot:', baseSettingsSnapshot);
+
 const nextSettings = getRelaxSelectionFromModal(baseSettingsSnapshot);
+      console.log('nextSettings:', nextSettings);
       setConstraintSettings(nextSettings);
 
       // edit mode: apply only
       if (stateSnapshot.mode === 'edit') {
+        console.log('editモードのため処理終了');
         closeRelaxModal();
         return;
       }
 
       // retry mode
+      console.log('retryモード - 再試行を開始します');
       setLoading(true);
       setStatusPanelVisible(true);
+      closeRelaxModal(); // モーダルを閉じてから処理を開始
 try {
+        console.log('runCreateAndPoll呼び出し開始:', monthKeySnapshot);
         const scheduleData = await runCreateAndPoll(monthKeySnapshot, nextSettings);
+        console.log('runCreateAndPoll完了:', scheduleData);
 
         if (isScheduleFeasible(scheduleData)) {
           closeRelaxModal();
@@ -3238,13 +3646,21 @@ try {
           originalUISettings: originalUISettingsSnapshot
         });
       } catch (err) {
-    // 何かあったら最後に「最初の状態」で再試行できるようにしておく
-    console.warn('openRelaxModal retry failed, fallback to baseSettingsSnapshot', err);
-    relaxModalState = {
-      baseSettings: (baseSettingsSnapshot && typeof baseSettingsSnapshot === 'object') ? baseSettingsSnapshot : (relaxModalState?.baseSettings || getConstraintSettings()),
-      monthKey: monthKeySnapshot || relaxModalState?.monthKey || getSelectedMonthKey(),
-      originalUISettings: originalUISettingsSnapshot || relaxModalState?.originalUISettings || null,
-    };
+        // タイムアウトやエラー時は、エラーメッセージを表示して再度モーダルを開く
+        console.warn('再試行でエラー発生:', err);
+        const errorMessage = err.message || '不明なエラーが発生しました';
+
+        // モーダルを再度開いてエラーを表示
+        openRelaxModal({
+          mode: 'retry',
+          title: '生成に失敗しました',
+          message: '通信エラーまたはバックエンドエラーです。必要に応じて条件を緩和して再試行できます。',
+          errorText: errorMessage,
+          baseSettings: baseSettingsSnapshot,
+          currentSettings: nextSettings,
+          monthKey: monthKeySnapshot,
+          originalUISettings: originalUISettingsSnapshot
+        });
       } finally {
         setLoading(false);
       }
@@ -3504,16 +3920,22 @@ function openRelaxModal({
 } = {}) {
   // ===== DOM =====
   const modal = document.getElementById('relax-modal');
-  const overlay = document.getElementById('relax-modal-overlay');
+  const overlay = modal; // relax-modal自体がオーバーレイを兼ねる
   const titleEl = document.getElementById('relax-modal-title');
   const messageEl = document.getElementById('relax-modal-message');
   const constraintsEl = document.getElementById('relax-modal-constraints');
   const errorsEl = document.getElementById('relax-modal-errors');
 
-  if (!modal || !overlay || !titleEl || !messageEl || !constraintsEl || !errorsEl) {
-    console.error('Relax modal elements are missing. Abort opening modal.');
+  if (!modal || !titleEl || !messageEl || !constraintsEl || !errorsEl) {
+    console.error('Relax modal elements are missing. Details:', {
+      modal: !!modal,
+      titleEl: !!titleEl,
+      messageEl: !!messageEl,
+      constraintsEl: !!constraintsEl,
+      errorsEl: !!errorsEl
+    });
     // ここで例外を投げるとUIが固まりやすいので alert でフォールバック
-    alert('条件緩和モーダルの部品が見つかりません（HTML/JSの不整合）。');
+    alert('条件緩和モーダルの部品が見つかりません（HTML/JSの不整合）。コンソールで詳細を確認してください。');
     return;
   }
 
